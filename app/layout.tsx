@@ -1,7 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Maven_Pro } from "next/font/google"
-import "./globals.css"
+import "../styles/globals.css"
 import { APP_CONFIG } from "@/lib/constants"
 
 const mavenPro = Maven_Pro({
