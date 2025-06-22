@@ -215,20 +215,18 @@ export class EcodesignService {
     // since Supabase doesn't support filtering on many-to-many relationships directly
     let guidelines = data || []
 
-    if (
+    const needsClientSideFiltering =
       filters &&
-      Object.keys(filters).some((key) =>
-        [
-          "hull_types",
-          "propulsion_types",
-          "yacht_size_classes",
-          "operational_profiles",
-          "technology_readiness_levels",
-          "target_groups",
-          "life_cycle_phases",
-        ].includes(key),
-      )
-    ) {
+      (filters.hull_types?.length ||
+        filters.propulsion_types?.length ||
+        filters.yacht_size_classes?.length ||
+        filters.operational_profiles?.length ||
+        filters.technology_readiness_levels?.length ||
+        filters.target_groups?.length ||
+        filters.life_cycle_phases?.length ||
+        (filters.strategy_id && !filters.substrategy_id))
+
+    if (needsClientSideFiltering) {
       // Load full guideline data with relationships for filtering
       guidelines = await this.getGuidelinesWithRelations(guidelines.map((g) => g.id))
 
@@ -272,6 +270,13 @@ export class EcodesignService {
           !guideline.life_cycle_phases?.some((lcp) => filters.life_cycle_phases!.includes(lcp.id))
         ) {
           return false
+        }
+        // New: Filter by strategy_id if present AND substrategy_id is NOT present
+        // This handles the case where "All Substrategies" is selected for a specific strategy.
+        if (filters.strategy_id && !filters.substrategy_id) {
+          if (guideline.substrategy?.strategy?.id !== filters.strategy_id) {
+            return false
+          }
         }
         return true
       })

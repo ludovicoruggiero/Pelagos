@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Filter, Plus, Settings, Target, BookOpen, Trash2 } from "lucide-react" // Import Trash2 icon
+import { Search, Filter, Plus, Settings, Target, BookOpen, Trash2 } from "lucide-react"
 import { authService } from "@/lib/auth"
 import {
   ecodesignService,
@@ -31,8 +31,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog" // Import AlertDialog components
-import { useToast } from "@/components/ui/use-toast" // Import useToast
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function EcodesignManager() {
   const [guidelines, setGuidelines] = useState<Guideline[]>([])
@@ -44,10 +44,9 @@ export default function EcodesignManager() {
   const [selectedGuideline, setSelectedGuideline] = useState<Guideline | null>(null)
   const [editingGuideline, setEditingGuideline] = useState<Guideline | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  // activeTab now controls the *sub-tabs* within settings, or 'guidelines' for the main view
   const [activeTab, setActiveTab] = useState<"guidelines" | "strategies" | "lookups" | "sources">("guidelines")
-  const [showDeleteAllConfirmation, setShowDeleteAllConfirmation] = useState(false) // New state for confirmation dialog
-  const { toast } = useToast() // Initialize toast
+  const [showDeleteAllConfirmation, setShowDeleteAllConfirmation] = useState(false)
+  const { toast } = useToast()
 
   const isAdmin = authService.hasAccess("admin")
 
@@ -75,11 +74,9 @@ export default function EcodesignManager() {
   }
 
   const handleFilterChange = async (newFilters: GuidelineFilters) => {
-    // Normalizza i valori "All" ➜ undefined
     const normalized: GuidelineFilters = { ...newFilters }
     if (normalized.strategy_id === "All") delete normalized.strategy_id
     if (normalized.substrategy_id === "All") delete normalized.substrategy_id
-    // NB: priority viene già normalizzato altrove
 
     setFilters(normalized)
     try {
@@ -114,15 +111,14 @@ export default function EcodesignManager() {
     setSelectedGuideline(null)
   }
 
-  // New function to handle deleting all guidelines
   const handleDeleteAllGuidelines = async () => {
     setLoading(true)
     try {
       await ecodesignService.deleteAllGuidelines()
-      setGuidelines([]) // Clear guidelines in state
-      setFilters({}) // Clear filters
-      setSelectedGuideline(null) // Clear selected guideline
-      setEditingGuideline(null) // Clear editing guideline
+      setGuidelines([])
+      setFilters({})
+      setSelectedGuideline(null)
+      setEditingGuideline(null)
       toast({
         title: "Success",
         description: "All ecodesign guidelines have been deleted.",
@@ -137,7 +133,7 @@ export default function EcodesignManager() {
       })
     } finally {
       setLoading(false)
-      setShowDeleteAllConfirmation(false) // Close confirmation dialog
+      setShowDeleteAllConfirmation(false)
     }
   }
 
@@ -195,17 +191,11 @@ export default function EcodesignManager() {
         )}
         {isAdmin && activeTab !== "guidelines" && (
           <div className="flex gap-2">
-            {" "}
-            {/* Wrap buttons in a div for spacing */}
             <Button variant="outline" onClick={() => setActiveTab("guidelines")} className="bg-black text-white">
               <BookOpen className="h-4 w-4 mr-2" />
               Back to Guidelines
             </Button>
-            <Button
-              variant="destructive" // Use destructive variant for delete action
-              onClick={() => setShowDeleteAllConfirmation(true)}
-              disabled={loading} // Disable if already loading
-            >
+            <Button variant="destructive" onClick={() => setShowDeleteAllConfirmation(true)} disabled={loading}>
               <Trash2 className="h-4 w-4 mr-2" />
               Delete All Guidelines
             </Button>
@@ -272,8 +262,7 @@ export default function EcodesignManager() {
                         handleFilterChange({
                           ...filters,
                           strategy_id: value === "All" ? undefined : value,
-                          // se resetti la strategy, resetta anche la substrategy
-                          substrategy_id: value === "All" ? undefined : filters.substrategy_id,
+                          substrategy_id: undefined, // Reset substrategy when strategy changes
                         })
                       }
                     >
@@ -301,6 +290,7 @@ export default function EcodesignManager() {
                           substrategy_id: value === "All" ? undefined : value,
                         })
                       }
+                      disabled={!filters.strategy_id}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="All substrategies" />
