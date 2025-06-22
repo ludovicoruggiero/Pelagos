@@ -425,6 +425,32 @@ export class EcodesignService {
     if (error) throw new Error(`Failed to delete guideline: ${error.message}`)
   }
 
+  // New method to delete all guidelines and their relationships
+  async deleteAllGuidelines(): Promise<void> {
+    const junctionTables = [
+      "eco_guideline_target_groups",
+      "eco_guideline_implementation_groups",
+      "eco_guideline_dependencies",
+      "eco_guideline_hull_types",
+      "eco_guideline_propulsion_types",
+      "eco_guideline_yacht_size_classes",
+      "eco_guideline_operational_profiles",
+      "eco_guideline_trls",
+      "eco_guideline_life_cycle_phases",
+      "eco_guideline_sources",
+    ]
+
+    // Delete from all junction tables first
+    for (const table of junctionTables) {
+      const { error } = await supabase.from(table).delete().neq("guideline_id", "00000000-0000-0000-0000-000000000000") // Delete all rows
+      if (error) throw new Error(`Failed to delete from ${table}: ${error.message}`)
+    }
+
+    // Then delete from the main guidelines table
+    const { error } = await supabase.from("eco_guidelines").delete().neq("id", "00000000-0000-0000-0000-000000000000") // Delete all rows
+    if (error) throw new Error(`Failed to delete all guidelines: ${error.message}`)
+  }
+
   private async updateGuidelineRelationships(guidelineId: string, data: any): Promise<void> {
     const relationships = [
       { table: "guideline_target_groups", field: "target_group_id", ids: data.target_group_ids },

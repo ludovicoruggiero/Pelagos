@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Filter, Plus, Settings, Target, BookOpen } from "lucide-react"
+import { Search, Filter, Plus, Settings, Target, BookOpen, Trash2 } from "lucide-react" // Import Trash2 icon
 import { authService } from "@/lib/auth"
 import {
   ecodesignService,
@@ -22,6 +22,17 @@ import GuidelineEditor from "@/components/ecodesign/guideline-editor"
 import StrategyManager from "@/components/ecodesign/strategy-manager"
 import LookupManager from "@/components/ecodesign/lookup-manager"
 import SourceManager from "@/components/ecodesign/source-manager"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog" // Import AlertDialog components
+import { useToast } from "@/components/ui/use-toast" // Import useToast
 
 export default function EcodesignManager() {
   const [guidelines, setGuidelines] = useState<Guideline[]>([])
@@ -35,6 +46,8 @@ export default function EcodesignManager() {
   const [showFilters, setShowFilters] = useState(false)
   // activeTab now controls the *sub-tabs* within settings, or 'guidelines' for the main view
   const [activeTab, setActiveTab] = useState<"guidelines" | "strategies" | "lookups" | "sources">("guidelines")
+  const [showDeleteAllConfirmation, setShowDeleteAllConfirmation] = useState(false) // New state for confirmation dialog
+  const { toast } = useToast() // Initialize toast
 
   const isAdmin = authService.hasAccess("admin")
 
@@ -101,6 +114,33 @@ export default function EcodesignManager() {
     setSelectedGuideline(null)
   }
 
+  // New function to handle deleting all guidelines
+  const handleDeleteAllGuidelines = async () => {
+    setLoading(true)
+    try {
+      await ecodesignService.deleteAllGuidelines()
+      setGuidelines([]) // Clear guidelines in state
+      setFilters({}) // Clear filters
+      setSelectedGuideline(null) // Clear selected guideline
+      setEditingGuideline(null) // Clear editing guideline
+      toast({
+        title: "Success",
+        description: "All ecodesign guidelines have been deleted.",
+        variant: "default",
+      })
+    } catch (error: any) {
+      console.error("Failed to delete all guidelines:", error)
+      toast({
+        title: "Error",
+        description: `Failed to delete all guidelines: ${error.message}`,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+      setShowDeleteAllConfirmation(false) // Close confirmation dialog
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -154,10 +194,22 @@ export default function EcodesignManager() {
           </div>
         )}
         {isAdmin && activeTab !== "guidelines" && (
-          <Button variant="outline" onClick={() => setActiveTab("guidelines")} className="bg-black text-white">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Back to Guidelines
-          </Button>
+          <div className="flex gap-2">
+            {" "}
+            {/* Wrap buttons in a div for spacing */}
+            <Button variant="outline" onClick={() => setActiveTab("guidelines")} className="bg-black text-white">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Back to Guidelines
+            </Button>
+            <Button
+              variant="destructive" // Use destructive variant for delete action
+              onClick={() => setShowDeleteAllConfirmation(true)}
+              disabled={loading} // Disable if already loading
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete All Guidelines
+            </Button>
+          </div>
         )}
       </div>
 
@@ -354,6 +406,25 @@ export default function EcodesignManager() {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Confirmation Dialog for Delete All Guidelines */}
+      <AlertDialog open={showDeleteAllConfirmation} onOpenChange={setShowDeleteAllConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete all ecodesign guidelines and remove all
+              associated data from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAllGuidelines} className="bg-red-600 hover:bg-red-700">
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

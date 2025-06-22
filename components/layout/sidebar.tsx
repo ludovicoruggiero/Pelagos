@@ -4,7 +4,7 @@ import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { X, RotateCcw } from "lucide-react"
+import { X, RotateCcw, Lightbulb } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 interface Section {
@@ -62,7 +62,7 @@ export function Sidebar({
                 onClick={() => setActiveView(section.id)}
                 className={`w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg transition-colors ${activeView === section.id ? "bg-blue-50 text-blue-700 border border-blue-200" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"}`}
               >
-                <Icon className="h-5 w-5" />
+                {section.id === "ecodesign" ? <Lightbulb className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                 <div className="flex-1 text-left">
                   <div className="font-medium">{section.label}</div>
                   <div className="text-xs text-slate-500">{section.description}</div>
