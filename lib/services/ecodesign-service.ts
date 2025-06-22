@@ -194,13 +194,22 @@ export class EcodesignService {
         substrategy:eco_substrategies(
           *,
           strategy:eco_strategies(*)
-        )
+        ),
+        target_groups:eco_guideline_target_groups(target_group_id, target_groups:eco_target_groups(*)),
+        implementation_groups:eco_guideline_implementation_groups(implementation_group_id, implementation_groups:eco_implementation_groups(*)),
+        dependencies:eco_guideline_dependencies(dependent_group_id, implementation_groups:eco_implementation_groups(*)),
+        hull_types:eco_guideline_hull_types(hull_type_id, hull_types:eco_hull_types(*)),
+        propulsion_types:eco_guideline_propulsion_types(propulsion_type_id, propulsion_types:eco_propulsion_types(*)),
+        yacht_size_classes:eco_guideline_yacht_size_classes(size_class_id, yacht_size_classes:eco_yacht_size_classes(*)),
+        operational_profiles:eco_guideline_operational_profiles(profile_id, operational_profiles:eco_operational_profiles(*)),
+        technology_readiness_levels:eco_guideline_trls(trl_id, technology_readiness_levels:eco_technology_readiness_levels(*)),
+        life_cycle_phases:eco_guideline_life_cycle_phases(phase_id, life_cycle_phases:eco_life_cycle_phases(*)),
+        sources:eco_guideline_sources(source_id, sources:eco_sources(*))
       `)
       .order("created_at", { ascending: false })
 
-    // Apply filters if provided
+    // Apply direct filters if provided
     if (filters?.priority) {
-      // Only filter if priority is one of the enum values
       query = query.eq("priority", filters.priority)
     }
     if (filters?.substrategy_id) {
@@ -211,90 +220,78 @@ export class EcodesignService {
 
     if (error) throw new Error(`Failed to fetch guidelines: ${error.message}`)
 
-    // If we have complex filters, we need to filter on the client side
-    // since Supabase doesn't support filtering on many-to-many relationships directly
-    let guidelines = data || []
+    const guidelines = data || []
 
-    const needsClientSideFiltering =
-      filters &&
-      (filters.hull_types?.length ||
-        filters.propulsion_types?.length ||
-        filters.yacht_size_classes?.length ||
-        filters.operational_profiles?.length ||
-        filters.technology_readiness_levels?.length ||
-        filters.target_groups?.length ||
-        filters.life_cycle_phases?.length ||
-        (filters.strategy_id && !filters.substrategy_id))
+    // Normalize the nested relations for easier access
+    const normalizedGuidelines: Guideline[] = guidelines.map((g: any) => ({
+      ...g,
+      target_groups: g.target_groups?.map((item: any) => item.target_groups) || [],
+      implementation_groups: g.implementation_groups?.map((item: any) => item.implementation_groups) || [],
+      dependencies: g.dependencies?.map((item: any) => item.implementation_groups) || [], // Dependencies also link to implementation_groups
+      hull_types: g.hull_types?.map((item: any) => item.hull_types) || [],
+      propulsion_types: g.propulsion_types?.map((item: any) => item.propulsion_types) || [],
+      yacht_size_classes: g.yacht_size_classes?.map((item: any) => item.yacht_size_classes) || [],
+      operational_profiles: g.operational_profiles?.map((item: any) => item.operational_profiles) || [],
+      technology_readiness_levels:
+        g.technology_readiness_levels?.map((item: any) => item.technology_readiness_levels) || [],
+      life_cycle_phases: g.life_cycle_phases?.map((item: any) => item.life_cycle_phases) || [],
+      sources: g.sources?.map((item: any) => item.sources) || [],
+    }))
 
-    if (needsClientSideFiltering) {
-      // Load full guideline data with relationships for filtering
-      guidelines = await this.getGuidelinesWithRelations(guidelines.map((g) => g.id))
+    // Apply client-side filtering for many-to-many relationships and strategy without substrategy
+    const filteredGuidelines = normalizedGuidelines.filter((guideline) => {
+      if (filters.hull_types?.length && !guideline.hull_types?.some((ht) => filters.hull_types!.includes(ht.id))) {
+        return false
+      }
+      if (
+        filters.propulsion_types?.length &&
+        !guideline.propulsion_types?.some((pt) => filters.propulsion_types!.includes(pt.id))
+      ) {
+        return false
+      }
+      if (
+        filters.yacht_size_classes?.length &&
+        !guideline.yacht_size_classes?.some((ysc) => filters.yacht_size_classes!.includes(ysc.id))
+      ) {
+        return false
+      }
+      if (
+        filters.operational_profiles?.length &&
+        !guideline.operational_profiles?.some((op) => filters.operational_profiles!.includes(op.id))
+      ) {
+        return false
+      }
+      if (
+        filters.technology_readiness_levels?.length &&
+        !guideline.technology_readiness_levels?.some((trl) => filters.technology_readiness_levels!.includes(trl.id))
+      ) {
+        return false
+      }
+      if (
+        filters.target_groups?.length &&
+        !guideline.target_groups?.some((tg) => filters.target_groups!.includes(tg.id))
+      ) {
+        return false
+      }
+      if (
+        filters.life_cycle_phases?.length &&
+        !guideline.life_cycle_phases?.some((lcp) => filters.life_cycle_phases!.includes(lcp.id))
+      ) {
+        return false
+      }
+      // Filter by strategy_id if present AND substrategy_id is NOT present
+      if (filters.strategy_id && !filters.substrategy_id) {
+        if (guideline.substrategy?.strategy?.id !== filters.strategy_id) {
+          return false
+        }
+      }
+      return true
+    })
 
-      // Apply relationship filters
-      guidelines = guidelines.filter((guideline) => {
-        if (filters.hull_types?.length && !guideline.hull_types?.some((ht) => filters.hull_types!.includes(ht.id))) {
-          return false
-        }
-        if (
-          filters.propulsion_types?.length &&
-          !guideline.propulsion_types?.some((pt) => filters.propulsion_types!.includes(pt.id))
-        ) {
-          return false
-        }
-        if (
-          filters.yacht_size_classes?.length &&
-          !guideline.yacht_size_classes?.some((ysc) => filters.yacht_size_classes!.includes(ysc.id))
-        ) {
-          return false
-        }
-        if (
-          filters.operational_profiles?.length &&
-          !guideline.operational_profiles?.some((op) => filters.operational_profiles!.includes(op.id))
-        ) {
-          return false
-        }
-        if (
-          filters.technology_readiness_levels?.length &&
-          !guideline.technology_readiness_levels?.some((trl) => filters.technology_readiness_levels!.includes(trl.id))
-        ) {
-          return false
-        }
-        if (
-          filters.target_groups?.length &&
-          !guideline.target_groups?.some((tg) => filters.target_groups!.includes(tg.id))
-        ) {
-          return false
-        }
-        if (
-          filters.life_cycle_phases?.length &&
-          !guideline.life_cycle_phases?.some((lcp) => filters.life_cycle_phases!.includes(lcp.id))
-        ) {
-          return false
-        }
-        // New: Filter by strategy_id if present AND substrategy_id is NOT present
-        // This handles the case where "All Substrategies" is selected for a specific strategy.
-        if (filters.strategy_id && !filters.substrategy_id) {
-          if (guideline.substrategy?.strategy?.id !== filters.strategy_id) {
-            return false
-          }
-        }
-        return true
-      })
-    }
-
-    return guidelines
+    return filteredGuidelines
   }
 
-  async getGuidelinesWithRelations(guidelineIds: string[]): Promise<Guideline[]> {
-    const guidelines: Guideline[] = []
-
-    for (const id of guidelineIds) {
-      const guideline = await this.getGuidelineById(id)
-      if (guideline) guidelines.push(guideline)
-    }
-
-    return guidelines
-  }
+  // Removed getGuidelinesWithRelations as it's no longer needed
 
   async getGuidelineById(id: string): Promise<Guideline | null> {
     const { data, error } = await supabase
@@ -304,7 +301,17 @@ export class EcodesignService {
         substrategy:eco_substrategies(
           *,
           strategy:eco_strategies(*)
-        )
+        ),
+        target_groups:eco_guideline_target_groups(target_group_id, target_groups:eco_target_groups(*)),
+        implementation_groups:eco_guideline_implementation_groups(implementation_group_id, implementation_groups:eco_implementation_groups(*)),
+        dependencies:eco_guideline_dependencies(dependent_group_id, implementation_groups:eco_implementation_groups(*)),
+        hull_types:eco_guideline_hull_types(hull_type_id, hull_types:eco_hull_types(*)),
+        propulsion_types:eco_guideline_propulsion_types(propulsion_type_id, propulsion_types:eco_propulsion_types(*)),
+        yacht_size_classes:eco_guideline_yacht_size_classes(size_class_id, yacht_size_classes:eco_yacht_size_classes(*)),
+        operational_profiles:eco_guideline_operational_profiles(profile_id, operational_profiles:eco_operational_profiles(*)),
+        technology_readiness_levels:eco_guideline_trls(trl_id, technology_readiness_levels:eco_technology_readiness_levels(*)),
+        life_cycle_phases:eco_guideline_life_cycle_phases(phase_id, life_cycle_phases:eco_life_cycle_phases(*)),
+        sources:eco_guideline_sources(source_id, sources:eco_sources(*))
       `)
       .eq("id", id)
       .single()
@@ -314,44 +321,23 @@ export class EcodesignService {
       throw new Error(`Failed to fetch guideline: ${error.message}`)
     }
 
-    // Load all related data
-    const [
-      targetGroups,
-      implementationGroups,
-      dependencies,
-      hullTypes,
-      propulsionTypes,
-      yachtSizeClasses,
-      operationalProfiles,
-      technologyReadinessLevels,
-      lifeCyclePhases,
-      sources,
-    ] = await Promise.all([
-      this.getGuidelineTargetGroups(id),
-      this.getGuidelineImplementationGroups(id),
-      this.getGuidelineDependencies(id),
-      this.getGuidelineHullTypes(id),
-      this.getGuidelinePropulsionTypes(id),
-      this.getGuidelineYachtSizeClasses(id),
-      this.getGuidelineOperationalProfiles(id),
-      this.getGuidelineTechnologyReadinessLevels(id),
-      this.getGuidelineLifeCyclePhases(id),
-      this.getGuidelineSources(id),
-    ])
-
-    return {
+    // Normalize the nested relations for easier access
+    const normalizedData: Guideline = {
       ...data,
-      target_groups: targetGroups,
-      implementation_groups: implementationGroups,
-      dependencies,
-      hull_types: hullTypes,
-      propulsion_types: propulsionTypes,
-      yacht_size_classes: yachtSizeClasses,
-      operational_profiles: operationalProfiles,
-      technology_readiness_levels: technologyReadinessLevels,
-      life_cycle_phases: lifeCyclePhases,
-      sources,
+      target_groups: data.target_groups?.map((item: any) => item.target_groups) || [],
+      implementation_groups: data.implementation_groups?.map((item: any) => item.implementation_groups) || [],
+      dependencies: data.dependencies?.map((item: any) => item.implementation_groups) || [],
+      hull_types: data.hull_types?.map((item: any) => item.hull_types) || [],
+      propulsion_types: data.propulsion_types?.map((item: any) => item.propulsion_types) || [],
+      yacht_size_classes: data.yacht_size_classes?.map((item: any) => item.yacht_size_classes) || [],
+      operational_profiles: data.operational_profiles?.map((item: any) => item.operational_profiles) || [],
+      technology_readiness_levels:
+        data.technology_readiness_levels?.map((item: any) => item.technology_readiness_levels) || [],
+      life_cycle_phases: data.life_cycle_phases?.map((item: any) => item.life_cycle_phases) || [],
+      sources: data.sources?.map((item: any) => item.sources) || [],
     }
+
+    return normalizedData
   }
 
   async createGuideline(guidelineData: {
@@ -497,6 +483,9 @@ export class EcodesignService {
    * Carica i record collegati a una guideline facendo prima
    * una query al junction-table per gli id e poi una query
    * alla lookup table con IN().
+   *
+   * NOTE: This method is now primarily used by getGuidelineById,
+   * as getGuidelines now fetches all relations directly.
    */
   private async getRelatedItems<T>(
     junctionTable: string,

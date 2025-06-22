@@ -15,6 +15,12 @@ import {
   type Strategy,
   type Substrategy,
   type GuidelineFilters,
+  type TargetGroup,
+  type LifeCyclePhase,
+  type HullType,
+  type PropulsionType,
+  type OperationalProfile,
+  type YachtSizeClass,
 } from "@/lib/services/ecodesign-service"
 import GuidelineCard from "@/components/ecodesign/guideline-card"
 import GuidelineDetail from "@/components/ecodesign/guideline-detail"
@@ -32,18 +38,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator" // Import Separator
 import { useToast } from "@/components/ui/use-toast"
 
 export default function EcodesignManager() {
   const [guidelines, setGuidelines] = useState<Guideline[]>([])
   const [strategies, setStrategies] = useState<Strategy[]>([])
   const [substrategies, setSubstrategies] = useState<Substrategy[]>([])
+  const [targetGroups, setTargetGroups] = useState<TargetGroup[]>([])
+  const [lifeCyclePhases, setLifeCyclePhases] = useState<LifeCyclePhase[]>([])
+  const [hullTypes, setHullTypes] = useState<HullType[]>([])
+  const [propulsionTypes, setPropulsionTypes] = useState<PropulsionType[]>([])
+  const [operationalProfiles, setOperationalProfiles] = useState<OperationalProfile[]>([])
+  const [yachtSizeClasses, setYachtSizeClasses] = useState<YachtSizeClass[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filters, setFilters] = useState<GuidelineFilters>({})
+  const [tempFilters, setTempFilters] = useState<GuidelineFilters>({})
   const [selectedGuideline, setSelectedGuideline] = useState<Guideline | null>(null)
   const [editingGuideline, setEditingGuideline] = useState<Guideline | null>(null)
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFilterDialog, setShowFilterDialog] = useState(false)
   const [activeTab, setActiveTab] = useState<"guidelines" | "strategies" | "lookups" | "sources">("guidelines")
   const [showDeleteAllConfirmation, setShowDeleteAllConfirmation] = useState(false)
   const { toast } = useToast()
@@ -57,15 +79,37 @@ export default function EcodesignManager() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [guidelinesData, strategiesData, substrategiesData] = await Promise.all([
+      const [
+        guidelinesData,
+        strategiesData,
+        substrategiesData,
+        targetGroupsData,
+        lifeCyclePhasesData,
+        hullTypesData,
+        propulsionTypesData,
+        operationalProfilesData,
+        yachtSizeClassesData,
+      ] = await Promise.all([
         ecodesignService.getGuidelines(filters),
         ecodesignService.getStrategies(),
         ecodesignService.getSubstrategies(),
+        ecodesignService.getTargetGroups(),
+        ecodesignService.getLifeCyclePhases(),
+        ecodesignService.getHullTypes(),
+        ecodesignService.getPropulsionTypes(),
+        ecodesignService.getOperationalProfiles(),
+        ecodesignService.getYachtSizeClasses(),
       ])
 
       setGuidelines(guidelinesData)
       setStrategies(strategiesData)
       setSubstrategies(substrategiesData)
+      setTargetGroups(targetGroupsData)
+      setLifeCyclePhases(lifeCyclePhasesData)
+      setHullTypes(hullTypesData)
+      setPropulsionTypes(propulsionTypesData)
+      setOperationalProfiles(operationalProfilesData)
+      setYachtSizeClasses(yachtSizeClassesData)
     } catch (error) {
       console.error("Failed to load ecodesign data:", error)
     } finally {
@@ -73,18 +117,55 @@ export default function EcodesignManager() {
     }
   }
 
-  const handleFilterChange = async (newFilters: GuidelineFilters) => {
-    const normalized: GuidelineFilters = { ...newFilters }
+  const applyFilters = async () => {
+    const normalized: GuidelineFilters = { ...tempFilters }
     if (normalized.strategy_id === "All") delete normalized.strategy_id
     if (normalized.substrategy_id === "All") delete normalized.substrategy_id
+    if (normalized.target_groups?.includes("All")) delete normalized.target_groups
+    if (normalized.life_cycle_phases?.includes("All")) delete normalized.life_cycle_phases
+    if (normalized.hull_types?.includes("All")) delete normalized.hull_types
+    if (normalized.propulsion_types?.includes("All")) delete normalized.propulsion_types
+    if (normalized.operational_profiles?.includes("All")) delete normalized.operational_profiles
+    if (normalized.yacht_size_classes?.includes("All")) delete normalized.yacht_size_classes
 
     setFilters(normalized)
+    setShowFilterDialog(false)
     try {
       const filteredGuidelines = await ecodesignService.getGuidelines(normalized)
       setGuidelines(filteredGuidelines)
     } catch (error) {
       console.error("Failed to filter guidelines:", error)
     }
+  }
+
+  const handleTempFilterChange = (key: keyof GuidelineFilters, value: string | string[] | undefined) => {
+    setTempFilters((prev) => {
+      const newFilters = { ...prev }
+      if (Array.isArray(value)) {
+        newFilters[key] = value.length > 0 ? value : undefined
+      } else if (value === "All" || value === "") {
+        newFilters[key] = undefined
+      } else {
+        if (
+          [
+            "target_groups",
+            "life_cycle_phases",
+            "hull_types",
+            "propulsion_types",
+            "operational_profiles",
+            "yacht_size_classes",
+          ].includes(key)
+        ) {
+          newFilters[key] = value ? [value] : undefined
+        } else {
+          newFilters[key] = value as any
+        }
+      }
+      if (key === "strategy_id" && value === undefined) {
+        newFilters.substrategy_id = undefined
+      }
+      return newFilters
+    })
   }
 
   const filteredGuidelines = guidelines.filter(
@@ -117,6 +198,7 @@ export default function EcodesignManager() {
       await ecodesignService.deleteAllGuidelines()
       setGuidelines([])
       setFilters({})
+      setTempFilters({})
       setSelectedGuideline(null)
       setEditingGuideline(null)
       toast({
@@ -136,6 +218,15 @@ export default function EcodesignManager() {
       setShowDeleteAllConfirmation(false)
     }
   }
+
+  const openFilterDialog = () => {
+    setTempFilters(filters)
+    setShowFilterDialog(true)
+  }
+
+  const filteredSubstrategies = tempFilters.strategy_id
+    ? substrategies.filter((sub) => sub.strategy_id === tempFilters.strategy_id)
+    : substrategies
 
   if (loading) {
     return (
@@ -206,10 +297,10 @@ export default function EcodesignManager() {
       {/* Main Content Area based on activeTab */}
       {activeTab === "guidelines" ? (
         <div className="space-y-6">
-          {/* Search and Filters */}
+          {/* Search and Filters Button */}
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
@@ -219,109 +310,11 @@ export default function EcodesignManager() {
                     className="pl-10"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2"
-                >
+                <Button variant="outline" onClick={openFilterDialog} className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
                   Filters
                 </Button>
               </div>
-
-              {showFilters && (
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-4 border-t">
-                  <div>
-                    <Label htmlFor="priority-filter">Priority</Label>
-                    <Select
-                      value={filters.priority ?? "All"}
-                      onValueChange={(value) =>
-                        handleFilterChange({
-                          ...filters,
-                          priority: value === "All" ? undefined : (value as "Low" | "Medium" | "High"),
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All priorities" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="All">All priorities</SelectItem>
-                        <SelectItem value="High">High</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="Low">Low</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="strategy-filter">Strategy</Label>
-                    <Select
-                      value={filters.strategy_id || "All"}
-                      onValueChange={(value) =>
-                        handleFilterChange({
-                          ...filters,
-                          strategy_id: value === "All" ? undefined : value,
-                          substrategy_id: undefined, // Reset substrategy when strategy changes
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All strategies" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="All">All strategies</SelectItem>
-                        {strategies.map((strategy) => (
-                          <SelectItem key={strategy.id} value={strategy.id}>
-                            {strategy.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="substrategy-filter">Substrategy</Label>
-                    <Select
-                      value={filters.substrategy_id || "All"}
-                      onValueChange={(value) =>
-                        handleFilterChange({
-                          ...filters,
-                          substrategy_id: value === "All" ? undefined : value,
-                        })
-                      }
-                      disabled={!filters.strategy_id}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All substrategies" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="All">All substrategies</SelectItem>
-                        {substrategies
-                          .filter((sub) => !filters.strategy_id || sub.strategy_id === filters.strategy_id)
-                          .map((substrategy) => (
-                            <SelectItem key={substrategy.id} value={substrategy.id}>
-                              {substrategy.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setFilters({})
-                        handleFilterChange({})
-                      }}
-                      className="w-full"
-                    >
-                      Clear Filters
-                    </Button>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -396,6 +389,231 @@ export default function EcodesignManager() {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Filter Dialog */}
+      <Dialog open={showFilterDialog} onOpenChange={setShowFilterDialog}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Filter Guidelines</DialogTitle>
+            <DialogDescription>Apply filters to narrow down the ecodesign guidelines.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Guideline Attributes Section */}
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="priority-filter">Priority</Label>
+                  <Select
+                    value={tempFilters.priority ?? "All"}
+                    onValueChange={(value) => handleTempFilterChange("priority", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All priorities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All priorities</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="strategy-filter">Strategy</Label>
+                  <Select
+                    value={tempFilters.strategy_id || "All"}
+                    onValueChange={(value) => handleTempFilterChange("strategy_id", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All strategies" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All strategies</SelectItem>
+                      {strategies.map((strategy) => (
+                        <SelectItem key={strategy.id} value={strategy.id}>
+                          {strategy.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="substrategy-filter">Substrategy</Label>
+                  <Select
+                    value={tempFilters.substrategy_id || "All"}
+                    onValueChange={(value) => handleTempFilterChange("substrategy_id", value)}
+                    disabled={!tempFilters.strategy_id}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All substrategies" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All substrategies</SelectItem>
+                      {filteredSubstrategies.map((substrategy) => (
+                        <SelectItem key={substrategy.id} value={substrategy.id}>
+                          {substrategy.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="target-group-filter">Target Group</Label>
+                  <Select
+                    value={tempFilters.target_groups?.[0] || "All"}
+                    onValueChange={(value) =>
+                      handleTempFilterChange("target_groups", value === "All" ? undefined : value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All target groups" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All target groups</SelectItem>
+                      {targetGroups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="life-cycle-phase-filter">Life Cycle Phase</Label>
+                  <Select
+                    value={tempFilters.life_cycle_phases?.[0] || "All"}
+                    onValueChange={(value) =>
+                      handleTempFilterChange("life_cycle_phases", value === "All" ? undefined : value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All life cycle phases" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All life cycle phases</SelectItem>
+                      {lifeCyclePhases.map((phase) => (
+                        <SelectItem key={phase.id} value={phase.id}>
+                          {phase.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Project Characteristics Section */}
+            <div>
+              <h4 className="text-lg font-semibold mb-3">Project Characteristics</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="hull-type-filter">Hull Type</Label>
+                  <Select
+                    value={tempFilters.hull_types?.[0] || "All"}
+                    onValueChange={(value) => handleTempFilterChange("hull_types", value === "All" ? undefined : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All hull types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All hull types</SelectItem>
+                      {hullTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="propulsion-type-filter">Propulsion Type</Label>
+                  <Select
+                    value={tempFilters.propulsion_types?.[0] || "All"}
+                    onValueChange={(value) =>
+                      handleTempFilterChange("propulsion_types", value === "All" ? undefined : value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All propulsion types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All propulsion types</SelectItem>
+                      {propulsionTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="operational-profile-filter">Operational Profile</Label>
+                  <Select
+                    value={tempFilters.operational_profiles?.[0] || "All"}
+                    onValueChange={(value) =>
+                      handleTempFilterChange("operational_profiles", value === "All" ? undefined : value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All operational profiles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All operational profiles</SelectItem>
+                      {operationalProfiles.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="yacht-size-class-filter">Yacht Size Class</Label>
+                  <Select
+                    value={tempFilters.yacht_size_classes?.[0] || "All"}
+                    onValueChange={(value) =>
+                      handleTempFilterChange("yacht_size_classes", value === "All" ? undefined : value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All yacht size classes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All yacht size classes</SelectItem>
+                      {yachtSizeClasses.map((sizeClass) => (
+                        <SelectItem key={sizeClass.id} value={sizeClass.id}>
+                          {sizeClass.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTempFilters({})
+                applyFilters()
+              }}
+            >
+              Clear Filters
+            </Button>
+            <Button onClick={applyFilters}>Apply Filters</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation Dialog for Delete All Guidelines */}
       <AlertDialog open={showDeleteAllConfirmation} onOpenChange={setShowDeleteAllConfirmation}>

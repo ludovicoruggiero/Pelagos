@@ -35,7 +35,9 @@ export default function GuidelineCard({ guideline, onClick, onEdit }: GuidelineC
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+    <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={onClick}>
+      {" "}
+      {/* Moved onClick here */}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -58,7 +60,7 @@ export default function GuidelineCard({ guideline, onClick, onEdit }: GuidelineC
               variant="ghost"
               size="sm"
               onClick={(e) => {
-                e.stopPropagation()
+                e.stopPropagation() // Prevent card onClick from firing
                 onClick()
               }}
             >
@@ -69,7 +71,7 @@ export default function GuidelineCard({ guideline, onClick, onEdit }: GuidelineC
                 variant="ghost"
                 size="sm"
                 onClick={(e) => {
-                  e.stopPropagation()
+                  e.stopPropagation() // Prevent card onClick from firing
                   onEdit()
                 }}
               >
@@ -79,8 +81,9 @@ export default function GuidelineCard({ guideline, onClick, onEdit }: GuidelineC
           </div>
         </div>
       </CardHeader>
-
-      <CardContent className="pt-0" onClick={onClick}>
+      <CardContent className="pt-0">
+        {" "}
+        {/* Removed onClick from here */}
         <div className="space-y-3">
           {guideline.substrategy && (
             <div className="flex items-center gap-2 text-sm text-slate-600">

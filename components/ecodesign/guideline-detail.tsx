@@ -8,17 +8,20 @@ import {
   ArrowLeft,
   Edit,
   Trash2,
-  Target,
   Ship,
+  UngroupIcon,
   Cog,
-  Users,
+  GroupIcon,
   Recycle,
-  BarChart3,
+  SignalHigh,
   BookOpen,
   AlertTriangle,
+  Target,
+  Flag,
 } from "lucide-react"
 import type { Guideline } from "@/lib/services/ecodesign-service"
 import { ecodesignService } from "@/lib/services/ecodesign-service"
+import { Separator } from "@/components/ui/separator"
 
 interface GuidelineDetailProps {
   guideline: Guideline
@@ -100,28 +103,10 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-2xl font-bold text-slate-900 mb-2">{guideline.title}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={getPriorityColor(guideline.priority)}>
-                      {guideline.priority} Priority
-                    </Badge>
-                    {guideline.substrategy?.strategy && (
-                      <Badge variant="secondary">{guideline.substrategy.strategy.name}</Badge>
-                    )}
-                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {guideline.substrategy && (
-                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm font-medium text-blue-900">
-                    <Target className="h-4 w-4" />
-                    Strategy: {guideline.substrategy.strategy?.name}
-                  </div>
-                  <div className="text-sm text-blue-700 mt-1">Substrategy: {guideline.substrategy.name}</div>
-                </div>
-              )}
-
               {guideline.description && (
                 <div className="prose max-w-none">
                   <p className="text-slate-700 leading-relaxed">{guideline.description}</p>
@@ -129,28 +114,6 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
               )}
             </CardContent>
           </Card>
-
-          {/* Implementation Groups */}
-          {guideline.implementation_groups && guideline.implementation_groups.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Cog className="h-5 w-5" />
-                  Implementation Groups
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {guideline.implementation_groups.map((group) => (
-                    <div key={group.id} className="p-3 bg-slate-50 rounded-lg">
-                      <div className="font-medium text-slate-900">{group.label}</div>
-                      <div className="text-sm text-slate-600">{group.code}</div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Dependencies */}
           {guideline.dependencies && guideline.dependencies.length > 0 && (
@@ -198,135 +161,172 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Metadata */}
+          {/* Details */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <div className="text-sm font-medium text-slate-600">Created</div>
-                <div className="text-sm text-slate-900">
-                  {new Date(guideline.created_at).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                <div className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                  <Flag className="h-4 w-4" /> {/* Icon for Priority */}
+                  Priority
                 </div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-slate-600">Priority</div>
                 <Badge variant="outline" className={getPriorityColor(guideline.priority)}>
                   {guideline.priority}
                 </Badge>
               </div>
+              {guideline.substrategy?.strategy && (
+                <div>
+                  <div className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    Strategy
+                  </div>
+                  <div className="text-sm text-slate-900">{guideline.substrategy.strategy.name}</div>
+                </div>
+              )}
+              {guideline.substrategy && (
+                <div>
+                  <div className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    Substrategy
+                  </div>
+                  <div className="text-sm text-slate-900">{guideline.substrategy.name}</div>
+                </div>
+              )}
+              {guideline.target_groups && guideline.target_groups.length > 0 && (
+                <>
+                  {(guideline.substrategy?.strategy || guideline.priority) && <Separator className="my-4" />}
+                  <div>
+                    <div className="text-sm font-medium text-slate-600 mb-2 flex items-center gap-2">
+                      <GroupIcon className="h-4 w-4" />
+                      Target Groups
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {guideline.target_groups.map((group) => (
+                        <Badge key={group.id} variant="secondary">
+                          {group.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              {guideline.life_cycle_phases && guideline.life_cycle_phases.length > 0 && (
+                <>
+                  {((guideline.target_groups && guideline.target_groups.length > 0) ||
+                    guideline.substrategy?.strategy ||
+                    guideline.priority) && <Separator className="my-4" />}
+                  <div>
+                    <div className="text-sm font-medium text-slate-600 mb-2 flex items-center gap-2">
+                      <Recycle className="h-4 w-4" />
+                      Life Cycle Phases
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {guideline.life_cycle_phases.map((phase) => (
+                        <Badge key={phase.id} variant="outline">
+                          {phase.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
-          {/* Target Groups */}
-          {guideline.target_groups && guideline.target_groups.length > 0 && (
+          {/* Related Attributes */}
+          {(guideline.implementation_groups && guideline.implementation_groups.length > 0) ||
+          (guideline.hull_types && guideline.hull_types.length > 0) ||
+          (guideline.propulsion_types && guideline.propulsion_types.length > 0) ||
+          (guideline.technology_readiness_levels && guideline.technology_readiness_levels.length > 0) ? (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="h-5 w-5" />
-                  Target Groups
-                </CardTitle>
+                <CardTitle className="text-lg">Related Attributes</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {guideline.target_groups.map((group) => (
-                    <Badge key={group.id} variant="secondary" className="mr-2 mb-2">
-                      {group.label}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+              <CardContent className="space-y-4">
+                {guideline.implementation_groups && guideline.implementation_groups.length > 0 && (
+                  <div>
+                    <div className="text-sm font-medium text-slate-600 mb-2 flex items-center gap-2">
+                      <UngroupIcon className="h-4 w-4" />
+                      Implementation Groups
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {guideline.implementation_groups.map((group) => (
+                        <Badge key={group.id} variant="outline">
+                          {group.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-          {/* Hull Types */}
-          {guideline.hull_types && guideline.hull_types.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Ship className="h-5 w-5" />
-                  Hull Types
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {guideline.hull_types.map((type) => (
-                    <Badge key={type.id} variant="outline" className="mr-2 mb-2">
-                      {type.label}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                {guideline.hull_types && guideline.hull_types.length > 0 && (
+                  <>
+                    {guideline.implementation_groups && guideline.implementation_groups.length > 0 && (
+                      <Separator className="my-4" />
+                    )}
+                    <div>
+                      <div className="text-sm font-medium text-slate-600 mb-2 flex items-center gap-2">
+                        <Ship className="h-4 w-4" />
+                        Hull Types
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {guideline.hull_types.map((type) => (
+                          <Badge key={type.id} variant="outline">
+                            {type.label}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
 
-          {/* Propulsion Types */}
-          {guideline.propulsion_types && guideline.propulsion_types.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Cog className="h-5 w-5" />
-                  Propulsion Types
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {guideline.propulsion_types.map((type) => (
-                    <Badge key={type.id} variant="outline" className="mr-2 mb-2">
-                      {type.label}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                {guideline.propulsion_types && guideline.propulsion_types.length > 0 && (
+                  <>
+                    {((guideline.implementation_groups && guideline.implementation_groups.length > 0) ||
+                      (guideline.hull_types && guideline.hull_types.length > 0)) && <Separator className="my-4" />}
+                    <div>
+                      <div className="text-sm font-medium text-slate-600 mb-2 flex items-center gap-2">
+                        <Cog className="h-4 w-4" />
+                        Propulsion Types
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {guideline.propulsion_types.map((type) => (
+                          <Badge key={type.id} variant="outline">
+                            {type.label}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
 
-          {/* Life Cycle Phases */}
-          {guideline.life_cycle_phases && guideline.life_cycle_phases.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Recycle className="h-5 w-5" />
-                  Life Cycle Phases
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {guideline.life_cycle_phases.map((phase) => (
-                    <Badge key={phase.id} variant="outline" className="mr-2 mb-2">
-                      {phase.label}
-                    </Badge>
-                  ))}
-                </div>
+                {guideline.technology_readiness_levels && guideline.technology_readiness_levels.length > 0 && (
+                  <>
+                    {((guideline.implementation_groups && guideline.implementation_groups.length > 0) ||
+                      (guideline.hull_types && guideline.hull_types.length > 0) ||
+                      (guideline.propulsion_types && guideline.propulsion_types.length > 0)) && (
+                      <Separator className="my-4" />
+                    )}
+                    <div>
+                      <div className="text-sm font-medium text-slate-600 mb-2 flex items-center gap-2">
+                        <SignalHigh className="h-4 w-4" />
+                        Technology Readiness
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {guideline.technology_readiness_levels.map((trl) => (
+                          <Badge key={trl.id} variant="outline">
+                            {trl.label}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
-          )}
-
-          {/* Technology Readiness Levels */}
-          {guideline.technology_readiness_levels && guideline.technology_readiness_levels.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <BarChart3 className="h-5 w-5" />
-                  Technology Readiness
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {guideline.technology_readiness_levels.map((trl) => (
-                    <Badge key={trl.id} variant="outline" className="mr-2 mb-2">
-                      {trl.label}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
