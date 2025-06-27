@@ -18,10 +18,13 @@ import {
   AlertTriangle,
   Target,
   Flag,
+  ExternalLink,
 } from "lucide-react"
 import type { Guideline } from "@/lib/services/ecodesign-service"
 import { ecodesignService } from "@/lib/services/ecodesign-service"
 import { Separator } from "@/components/ui/separator"
+import { Dialog, DialogContent } from "@/components/ui/dialog" // Import Dialog components
+import Image from "next/image" // Import Image component
 
 interface GuidelineDetailProps {
   guideline: Guideline
@@ -32,6 +35,8 @@ interface GuidelineDetailProps {
 
 export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }: GuidelineDetailProps) {
   const [deleting, setDeleting] = useState(false)
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false) // State for image preview dialog
+  const [previewImageUrl, setPreviewImageUrl] = useState("") // State for image URL in preview dialog
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this guideline? This action cannot be undone.")) {
@@ -63,6 +68,11 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
     }
   }
 
+  const handleImageClick = (url: string) => {
+    setPreviewImageUrl(url)
+    setIsImagePreviewOpen(true)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -75,7 +85,7 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
         </div>
         <div className="flex items-center gap-2">
           {onEdit && (
-            <Button variant="outline" onClick={onEdit} className="flex items-center gap-2">
+            <Button variant="outline" onClick={onEdit} className="flex items-center gap-2 bg-transparent">
               <Edit className="h-4 w-4" />
               Edit
             </Button>
@@ -85,7 +95,7 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
               variant="outline"
               onClick={handleDelete}
               disabled={deleting}
-              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 bg-transparent"
             >
               <Trash2 className="h-4 w-4" />
               {deleting ? "Deleting..." : "Delete"}
@@ -147,10 +157,55 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {guideline.sources.map((source) => (
-                    <div key={source.id} className="p-3 bg-slate-50 rounded-lg">
-                      <div className="font-medium text-slate-900">{source.name}</div>
+                    <div
+                      key={source.id}
+                      className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-start gap-4"
+                    >
+                      {source.image_url && (
+                        <button
+                          onClick={() => handleImageClick(source.image_url!)}
+                          className="flex-shrink-0 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                          aria-label={`View image for ${source.name}`}
+                        >
+                          <Image
+                            src={source.image_url || "/placeholder.svg"}
+                            alt={`Image for ${source.name}`}
+                            width={80}
+                            height={80}
+                            className="object-cover aspect-square"
+                          />
+                        </button>
+                      )}
+                      <div className="flex-grow space-y-1">
+                        {source.link ? (
+                          <a
+                            href={source.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center font-semibold text-slate-900 hover:underline"
+                          >
+                            {source.name}
+                            <ExternalLink className="ml-1 h-3 w-3" />
+                          </a>
+                        ) : (
+                          <div className="font-semibold text-slate-900">{source.name}</div>
+                        )}
+                        {source.description && <p className="text-sm text-slate-700">{source.description}</p>}
+                        {!source.link &&
+                          source.link && ( // This condition will never be true, but keeping it for clarity if a separate "View Source" link is desired later
+                            <a
+                              href={source.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-sm text-blue-600 hover:underline"
+                            >
+                              View Source
+                              <ExternalLink className="ml-1 h-3 w-3" />
+                            </a>
+                          )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -329,6 +384,21 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
           ) : null}
         </div>
       </div>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0">
+          {previewImageUrl && (
+            <Image
+              src={previewImageUrl || "/placeholder.svg"}
+              alt="Source preview"
+              layout="fill"
+              objectFit="contain"
+              className="rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
