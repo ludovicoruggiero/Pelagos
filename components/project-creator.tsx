@@ -216,18 +216,16 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
               </div>
             </div>
 
-            {/* Info Alert */}
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                You can update these details later. The project will be saved as a draft until the analysis is
-                completed.
-              </AlertDescription>
-            </Alert>
-
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
+            {/* Info Alert and Submit Button */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4">
+              <Alert className="flex-grow sm:max-w-[70%] border-none bg-white">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  You can update these details later. The project will be saved as a draft until the analysis is
+                  completed.
+                </AlertDescription>
+              </Alert>
+              <Button type="submit" disabled={isCreating} className="bg-blue-600 hover:bg-blue-700 sm:ml-auto">
                 {isCreating ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
