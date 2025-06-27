@@ -387,15 +387,17 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
 
       {/* Image Preview Dialog */}
       <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0">
+        <DialogContent className="max-w-xl p-8">
           {previewImageUrl && (
-            <Image
-              src={previewImageUrl || "/placeholder.svg"}
-              alt="Source preview"
-              layout="fill"
-              objectFit="contain"
-              className="rounded-lg"
-            />
+            <div className="relative w-full aspect-square mx-auto">
+              <Image
+                src={previewImageUrl || "/placeholder.svg"}
+                alt="Source preview"
+                layout="fill"
+                objectFit="contain"
+                className="rounded-lg"
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>

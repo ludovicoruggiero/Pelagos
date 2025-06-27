@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Filter, Plus, Settings, Target, BookOpen, Trash2 } from "lucide-react"
+import { Search, Filter, Plus, Settings, Target, BookOpen, Trash2, ArrowLeft } from "lucide-react" // Import ArrowLeft
 import { authService } from "@/lib/auth"
 import {
   ecodesignService,
@@ -28,6 +28,7 @@ import GuidelineEditor from "@/components/ecodesign/guideline-editor"
 import StrategyManager from "@/components/ecodesign/strategy-manager"
 import LookupManager from "@/components/ecodesign/lookup-manager"
 import SourceManager from "@/components/ecodesign/source-manager"
+import EcodesignLandingCard from "@/components/ecodesign/ecodesign-landing-card" // Import the new component
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +49,7 @@ import {
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator" // Import Separator
 import { useToast } from "@/components/ui/use-toast"
+import { Skeleton } from "@/components/ui/skeleton" // Import Skeleton
 
 export default function EcodesignManager() {
   const [guidelines, setGuidelines] = useState<Guideline[]>([])
@@ -68,13 +70,17 @@ export default function EcodesignManager() {
   const [showFilterDialog, setShowFilterDialog] = useState(false)
   const [activeTab, setActiveTab] = useState<"guidelines" | "strategies" | "lookups" | "sources">("guidelines")
   const [showDeleteAllConfirmation, setShowDeleteAllConfirmation] = useState(false)
+  const [showEcodesignLanding, setShowEcodesignLanding] = useState(true) // New state for landing card
   const { toast } = useToast()
 
   const isAdmin = authService.hasAccess("admin")
 
   useEffect(() => {
-    loadData()
-  }, [])
+    // Only load data if not showing the landing card, or if we just switched from it
+    if (!showEcodesignLanding) {
+      loadData()
+    }
+  }, [showEcodesignLanding]) // Depend on showEcodesignLanding
 
   const loadData = async () => {
     try {
@@ -228,11 +234,42 @@ export default function EcodesignManager() {
     ? substrategies.filter((sub) => sub.strategy_id === tempFilters.strategy_id)
     : substrategies
 
+  if (showEcodesignLanding) {
+    return <EcodesignLandingCard onExploreGuidelines={() => setShowEcodesignLanding(false)} />
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-3 text-lg text-slate-700">Loading ecodesign guidelines...</span>
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 w-full">
+              <Skeleton className="h-10 w-full md:w-64" />
+              <Skeleton className="h-10 w-24" />
+              <div className="flex gap-2 mt-4 md:mt-0">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-24" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="flex flex-col h-full">
+              <CardContent className="p-6 flex-1 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </div>
+                <div className="flex justify-between items-center mt-4">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     )
   }
@@ -262,46 +299,14 @@ export default function EcodesignManager() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Ecodesign Guidelines</h1>
-          <p className="text-slate-600">Life Cycle Design guidelines and strategies for yacht projects</p>
-        </div>
-        {isAdmin && activeTab === "guidelines" && (
-          <div className="flex gap-2">
-            <Button onClick={() => setEditingGuideline({} as Guideline)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              New Guideline
-            </Button>
-            <Button variant="outline" onClick={() => setActiveTab("strategies")} className="bg-black text-white">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-          </div>
-        )}
-        {isAdmin && activeTab !== "guidelines" && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setActiveTab("guidelines")} className="bg-black text-white">
-              <BookOpen className="h-4 w-4 mr-2" />
-              Back to Guidelines
-            </Button>
-            <Button variant="destructive" onClick={() => setShowDeleteAllConfirmation(true)} disabled={loading}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete All Guidelines
-            </Button>
-          </div>
-        )}
-      </div>
-
       {/* Main Content Area based on activeTab */}
       {activeTab === "guidelines" ? (
         <div className="space-y-6">
-          {/* Search and Filters Button */}
+          {/* Search, Filters Button, and Action Buttons */}
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="flex-1 relative">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 w-full">
+                <div className="flex-1 relative w-full md:w-auto">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     placeholder="Search guidelines..."
@@ -310,10 +315,32 @@ export default function EcodesignManager() {
                     className="pl-10"
                   />
                 </div>
-                <Button variant="outline" onClick={openFilterDialog} className="flex items-center gap-2">
+                <Button variant="outline" onClick={openFilterDialog} className="flex items-center gap-2 bg-transparent">
                   <Filter className="h-4 w-4" />
                   Filters
                 </Button>
+
+                {isAdmin && (
+                  <div className="flex gap-2 mt-4 md:mt-0">
+                    {" "}
+                    {/* Added margin top for small screens */}
+                    <Button
+                      onClick={() => setEditingGuideline({} as Guideline)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Guideline
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setActiveTab("strategies")}
+                      className="bg-black text-white"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -355,39 +382,56 @@ export default function EcodesignManager() {
         </div>
       ) : (
         // Settings Content (Strategies, Lookups, Sources)
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-3">
-            <TabsTrigger value="strategies" className="flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Strategies
-            </TabsTrigger>
-            <TabsTrigger value="lookups" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Lookups
-            </TabsTrigger>
-            <TabsTrigger value="sources" className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              Sources
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          <div className="flex justify-between items-center mb-4">
+            {isAdmin && (
+              <Button variant="ghost" onClick={() => setActiveTab("guidelines")}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Guidelines
+              </Button>
+            )}
+            {isAdmin && (
+              <Button variant="destructive" onClick={() => setShowDeleteAllConfirmation(true)} disabled={loading}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete All Guidelines
+              </Button>
+            )}
+          </div>
 
-          <TabsContent value="strategies">
-            <StrategyManager
-              strategies={strategies}
-              substrategies={substrategies}
-              onStrategiesChange={setStrategies}
-              onSubstrategiesChange={setSubstrategies}
-            />
-          </TabsContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-1 md:grid-cols-3">
+              <TabsTrigger value="strategies" className="flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Strategies
+              </TabsTrigger>
+              <TabsTrigger value="lookups" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Lookups
+              </TabsTrigger>
+              <TabsTrigger value="sources" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                Sources
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="lookups">
-            <LookupManager />
-          </TabsContent>
+            <TabsContent value="strategies">
+              <StrategyManager
+                strategies={strategies}
+                substrategies={substrategies}
+                onStrategiesChange={setStrategies}
+                onSubstrategiesChange={setSubstrategies}
+              />
+            </TabsContent>
 
-          <TabsContent value="sources">
-            <SourceManager />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="lookups">
+              <LookupManager />
+            </TabsContent>
+
+            <TabsContent value="sources">
+              <SourceManager />
+            </TabsContent>
+          </Tabs>
+        </div>
       )}
 
       {/* Filter Dialog */}

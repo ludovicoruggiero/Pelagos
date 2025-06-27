@@ -2,37 +2,39 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, Edit, Trash2, Search, Download, Upload, Save, CheckCircle, AlertTriangle } from "lucide-react"
+import { Edit, Trash2, Search, Download, Upload, AlertTriangle, ChevronDown } from "lucide-react"
 import { MaterialsDatabase, type Material } from "@/lib/materials-database-supabase"
-import { validateMaterial, parseAliases, formatAliases } from "@/lib/utils/material-utils"
-import { MATERIAL_CATEGORIES } from "@/lib/constants"
+import { validateMaterial } from "@/lib/utils/material-utils"
 import { notificationService } from "@/lib/services/notification-service"
+import { Skeleton } from "@/components/ui/skeleton" // Import Skeleton
 
 import { AddMaterialDialog } from "./materials-manager/add-material-dialog"
 import { EditMaterialDialog } from "./materials-manager/edit-material-dialog"
 import { StatsView } from "./materials-manager/stats-view"
 
+const INITIAL_LOAD_LIMIT = 30
+const LOAD_MORE_INCREMENT = 5
+
 export default function MaterialsManager() {
   const [materialsDb] = useState(() => new MaterialsDatabase())
-  const [materials, setMaterials] = useState<Material[]>([])
-  const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([])
+  const [materials, setMaterials] = useState<Material[]>([]) // This will hold all currently loaded materials for the list
+  const [allMaterialsForStats, setAllMaterialsForStats] = useState<Material[]>([]) // All materials for stats view
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isStatsLoading, setIsStatsLoading] = useState(false) // New loading state for stats
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "error" | "loading">("loading")
   const [newMaterial, setNewMaterial] = useState<Partial<Material>>({
     name: "",
@@ -43,52 +45,71 @@ export default function MaterialsManager() {
     density: 0,
     description: "",
   })
+  const [totalMaterialsCount, setTotalMaterialsCount] = useState(0) // Total count of materials matching current filters
 
-  useEffect(() => {
-    loadMaterials()
+  // useCallback to memoize the fetch function for the list
+  const fetchMaterials = useCallback(
+    async (offset: number, limit: number, append = false) => {
+      setIsLoading(true)
+      setConnectionStatus("loading")
+
+      try {
+        const { data, totalCount } = await materialsDb.getPaginatedAndFilteredMaterials(
+          searchTerm,
+          selectedCategory,
+          offset,
+          limit,
+        )
+
+        if (append) {
+          setMaterials((prev) => [...prev, ...data])
+        } else {
+          setMaterials(data)
+        }
+        setTotalMaterialsCount(totalCount)
+        setConnectionStatus("connected")
+      } catch (error: any) {
+        setConnectionStatus("error")
+        notificationService.error(error.message || "Error loading materials")
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [materialsDb, searchTerm, selectedCategory], // Dependencies for useCallback
+  )
+
+  // useCallback to memoize the fetch function for stats
+  const fetchStatsMaterials = useCallback(async () => {
+    setIsStatsLoading(true)
+    try {
+      const data = await materialsDb.exportMaterials() // This fetches ALL materials
+      setAllMaterialsForStats(data)
+    } catch (error: any) {
+      notificationService.error(error.message || "Error loading statistics data")
+    } finally {
+      setIsStatsLoading(false)
+    }
   }, [materialsDb])
 
+  // Initial load for the list
   useEffect(() => {
-    filterMaterials()
-  }, [materials, searchTerm, selectedCategory])
+    fetchMaterials(0, INITIAL_LOAD_LIMIT, false)
+  }, [fetchMaterials])
 
-  const loadMaterials = async () => {
-    setIsLoading(true)
-    setConnectionStatus("loading")
+  // Fetch stats materials when the component mounts or when the tab changes to stats
+  useEffect(() => {
+    // Only fetch stats materials if the stats tab is active or if we need to pre-load
+    // For simplicity, let's fetch when the tab is activated.
+    // Or, if we want to always have it ready, fetch on mount.
+    // For now, let's fetch when the tab is activated.
+  }, [])
 
-    try {
-      const data = await materialsDb.getAllMaterials()
-      setMaterials(data)
-      setFilteredMaterials(data)
-      setConnectionStatus("connected")
-    } catch (error: any) {
-      setConnectionStatus("error")
-      notificationService.error(error.message || "Error loading materials")
-    } finally {
-      setIsLoading(false)
-    }
+  const handleLoadMore = () => {
+    const currentLoadedCount = materials.length
+    fetchMaterials(currentLoadedCount, LOAD_MORE_INCREMENT, true) // Append new data
   }
 
-  const filterMaterials = () => {
-    let filtered = materials
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (material) =>
-          material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          material.aliases.some((alias) => alias.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          material.category.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    }
-
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((material) => material.category === selectedCategory)
-    }
-
-    setFilteredMaterials(filtered)
-  }
-
-  const categories = Array.from(new Set(materials.map((m) => m.category)))
+  const categories = Array.from(new Set(materials.map((m) => m.category))) // Categories from currently loaded materials for list view
 
   const handleAddMaterial = async () => {
     const validation = validateMaterial(newMaterial)
@@ -110,10 +131,11 @@ export default function MaterialsManager() {
 
     try {
       await materialsDb.addMaterial(material)
-      await loadMaterials()
       resetNewMaterial()
       setIsAddDialogOpen(false)
       notificationService.success("Material added successfully")
+      fetchMaterials(0, materials.length + 1, false) // Re-fetch all current + new, or just refresh current view
+      fetchStatsMaterials() // Also refresh stats
     } catch (error: any) {
       notificationService.error(error.message || "Error adding material")
     }
@@ -130,10 +152,11 @@ export default function MaterialsManager() {
 
     try {
       await materialsDb.updateMaterial(editingMaterial.id, editingMaterial)
-      await loadMaterials()
       setEditingMaterial(null)
       setIsEditDialogOpen(false)
       notificationService.success("Material updated successfully")
+      fetchMaterials(0, materials.length, false) // Re-fetch current view to reflect changes
+      fetchStatsMaterials() // Also refresh stats
     } catch (error: any) {
       notificationService.error(error.message || "Error updating material")
     }
@@ -144,8 +167,9 @@ export default function MaterialsManager() {
 
     try {
       await materialsDb.removeMaterial(id)
-      await loadMaterials()
       notificationService.success("Material deleted successfully")
+      fetchMaterials(0, materials.length, false) // Re-fetch current view after deletion
+      fetchStatsMaterials() // Also refresh stats
     } catch (error: any) {
       notificationService.error(error.message || "Error deleting material")
     }
@@ -156,9 +180,9 @@ export default function MaterialsManager() {
 
     try {
       await materialsDb.clearAllMaterials()
-      setMaterials([])
-      setFilteredMaterials([])
       notificationService.success("All materials have been deleted")
+      fetchMaterials(0, INITIAL_LOAD_LIMIT, false) // Reset to initial view
+      fetchStatsMaterials() // Also refresh stats
     } catch (error: any) {
       notificationService.error(error.message || "Error deleting all materials")
     }
@@ -169,8 +193,9 @@ export default function MaterialsManager() {
 
     try {
       await materialsDb.resetToDefaults()
-      await loadMaterials()
       notificationService.success("Database reset to default values")
+      fetchMaterials(0, INITIAL_LOAD_LIMIT, false) // Reset to initial view
+      fetchStatsMaterials() // Also refresh stats
     } catch (error: any) {
       notificationService.error(error.message || "Error resetting database")
     }
@@ -208,9 +233,10 @@ export default function MaterialsManager() {
         }
 
         const importedCount = await materialsDb.importMaterials(importedMaterials)
-        await loadMaterials()
         notificationService.success(`Successfully imported ${importedCount} materials`)
         event.target.value = ""
+        fetchMaterials(0, INITIAL_LOAD_LIMIT, false) // Reset to initial view after import
+        fetchStatsMaterials() // Also refresh stats
       } catch (error: any) {
         notificationService.error(error.message || "Error importing file. Check file format.")
       }
@@ -233,14 +259,7 @@ export default function MaterialsManager() {
   const renderConnectionStatus = () => {
     switch (connectionStatus) {
       case "loading":
-        return (
-          <Alert className="mb-4">
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <span>Connecting to Supabase database...</span>
-            </div>
-          </Alert>
-        )
+        return null // Removed the loading message as requested
       case "error":
         return (
           <Alert variant="destructive" className="mb-4">
@@ -249,183 +268,270 @@ export default function MaterialsManager() {
           </Alert>
         )
       case "connected":
-        return (
-          <Alert className="mb-4">
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>Successfully connected to Supabase database.</AlertDescription>
-          </Alert>
-        )
+        return null // Removed the success message as requested
     }
   }
 
-  if (isLoading) {
+  if (isLoading && materials.length === 0) {
+    // Show skeleton only on initial load or when no materials are loaded yet
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Loading materials...</span>
+      <div className="space-y-6">
+        {renderConnectionStatus()}
+        <Tabs defaultValue="list" className="w-full">
+          <TabsList>
+            <Skeleton className="h-9 w-28" />
+            <Skeleton className="h-9 w-28" />
+          </TabsList>
+          <TabsContent value="list" className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                      <Skeleton className="h-4 w-20" />
+                    </TableHead>
+                    <TableHead>
+                      <Skeleton className="h-4 w-20" />
+                    </TableHead>
+                    <TableHead>
+                      <Skeleton className="h-4 w-24" />
+                    </TableHead>
+                    <TableHead>
+                      <Skeleton className="h-4 w-20" />
+                    </TableHead>
+                    <TableHead>
+                      <Skeleton className="h-4 w-16" />
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Skeleton className="h-8 w-8 rounded-md" />
+                          <Skeleton className="h-8 w-8 rounded-md" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                <Skeleton className="h-10 w-28" />
+                <Skeleton className="h-10 w-28" />
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
-            Materials Database Management
-          </CardTitle>
-          <CardDescription>
-            Add, edit or delete materials from the database to improve automatic recognition
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {renderConnectionStatus()}
+      {renderConnectionStatus()} {/* Keep error/loading status, remove success */}
+      <Tabs
+        defaultValue="list"
+        className="w-full"
+        onValueChange={(value) => {
+          if (value === "stats" && allMaterialsForStats.length === 0 && !isStatsLoading) {
+            fetchStatsMaterials()
+          }
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="list">Materials List</TabsTrigger>
+          <TabsTrigger value="stats">Statistics</TabsTrigger>
+        </TabsList>
 
-          <Tabs defaultValue="list" className="w-full">
-            <TabsList>
-              <TabsTrigger value="list">Materials List</TabsTrigger>
-              <TabsTrigger value="stats">Statistics</TabsTrigger>
-            </TabsList>
+        <TabsContent value="list" className="space-y-4">
+          {/* Top row for search, filter, and Add Material button */}
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search materials..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <AddMaterialDialog
+              isOpen={isAddDialogOpen}
+              onOpenChange={setIsAddDialogOpen}
+              newMaterial={newMaterial}
+              onMaterialChange={setNewMaterial}
+              onSave={handleAddMaterial}
+            />
+          </div>
 
-            <TabsContent value="list" className="space-y-4">
-              {/* Controls */}
-              <div className="flex gap-4 items-center">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="Search materials..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="All categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <AddMaterialDialog
-                  isOpen={isAddDialogOpen}
-                  onOpenChange={setIsAddDialogOpen}
-                  newMaterial={newMaterial}
-                  onMaterialChange={setNewMaterial}
-                  onSave={handleAddMaterial}
-                />
-              </div>
-
-              {/* Materials table */}
-              <div className="border rounded-lg">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>GWP Factor</TableHead>
-                      <TableHead>Aliases</TableHead>
-                      <TableHead>Actions</TableHead>
+          {/* Materials table */}
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>GWP Factor</TableHead>
+                  <TableHead>Aliases</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {materials.map(
+                  (
+                    material, // Use 'materials' directly as it's already filtered/paginated
+                  ) => (
+                    <TableRow key={material.id}>
+                      <TableCell className="font-medium">{material.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{material.category}</Badge>
+                      </TableCell>
+                      <TableCell>{material.gwpFactor} kg CO₂eq/kg</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {material.aliases.slice(0, 3).map((alias, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {alias}
+                            </Badge>
+                          ))}
+                          {material.aliases.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{material.aliases.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingMaterial({ ...material })
+                              setIsEditDialogOpen(true)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteMaterial(material.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredMaterials.map((material) => (
-                      <TableRow key={material.id}>
-                        <TableCell className="font-medium">{material.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{material.category}</Badge>
-                        </TableCell>
-                        <TableCell>{material.gwpFactor} kg CO₂eq/kg</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {material.aliases.slice(0, 3).map((alias, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {alias}
-                              </Badge>
-                            ))}
-                            {material.aliases.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{material.aliases.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingMaterial({ ...material })
-                                setIsEditDialogOpen(true)
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteMaterial(material.id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {filteredMaterials.length === 0 && (
-                <div className="text-center py-8 text-gray-500">No materials found with selected filters</div>
+                  ),
+                )}
+              </TableBody>
+              {/* Load More button integrated into TableFooter */}
+              {materials.length < totalMaterialsCount && (
+                <TableFooter>
+                  <TableRow
+                    onClick={handleLoadMore}
+                    className="cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <TableCell colSpan={5} className="text-center">
+                      <Button variant="ghost" className="pointer-events-none">
+                        Load more ({totalMaterialsCount - materials.length} remaining){" "}
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
               )}
+            </Table>
+          </div>
 
-              {/* Action buttons */}
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
-                  <Button variant="destructive" onClick={handleDeleteAllMaterials}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete All
-                  </Button>
-                  <Button variant="outline" onClick={handleResetToDefaults}>
-                    Reset Defaults
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={exportDatabase}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                  <Label htmlFor="import-file">
-                    <Button variant="outline" asChild>
-                      <span>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Import
-                      </span>
-                    </Button>
-                  </Label>
-                  <Input id="import-file" type="file" accept=".json" onChange={importDatabase} className="hidden" />
-                </div>
+          {materials.length === 0 &&
+            !isLoading && ( // Show this message only if no materials and not loading
+              <div className="text-center py-8 text-gray-500">No materials found with selected filters</div>
+            )}
+
+          {/* Action buttons at the bottom */}
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <Button variant="destructive" onClick={handleDeleteAllMaterials}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete All
+              </Button>
+              <Button variant="outline" onClick={handleResetToDefaults}>
+                Reset Defaults
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={exportDatabase}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+              <Label htmlFor="import-file">
+                <Button variant="outline">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import
+                </Button>
+              </Label>
+              <Input id="import-file" type="file" accept=".json" onChange={importDatabase} className="hidden" />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="stats">
+          {isStatsLoading ? (
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-4 gap-4">
+                <Skeleton className="h-[100px] w-full" />
+                <Skeleton className="h-[100px] w-full" />
+                <Skeleton className="h-[100px] w-full" />
+                <Skeleton className="h-[100px] w-full" />
               </div>
-            </TabsContent>
-
-            <TabsContent value="stats">
-              <StatsView materials={materials} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
+              <Skeleton className="h-[300px] w-full" />
+            </div>
+          ) : (
+            <StatsView materials={allMaterialsForStats} />
+          )}
+        </TabsContent>
+      </Tabs>
       <EditMaterialDialog
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}

@@ -84,6 +84,10 @@ export default function StrategyManager({
     }
   }
 
+  const filteredSubstrategies = selectedStrategyId
+    ? substrategies.filter((s) => s.strategy_id === selectedStrategyId)
+    : substrategies
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -168,7 +172,7 @@ export default function StrategyManager({
             </div>
 
             <div className="space-y-2">
-              {substrategies.map((substrategy) => (
+              {filteredSubstrategies.map((substrategy) => (
                 <div key={substrategy.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div>
                     <div className="font-medium">{substrategy.name}</div>
@@ -186,6 +190,12 @@ export default function StrategyManager({
                   </Button>
                 </div>
               ))}
+              {filteredSubstrategies.length === 0 && selectedStrategyId && (
+                <p className="text-sm text-gray-500 text-center py-4">No substrategies for this strategy yet.</p>
+              )}
+              {filteredSubstrategies.length === 0 && !selectedStrategyId && (
+                <p className="text-sm text-gray-500 text-center py-4">Select a strategy to view its substrategies.</p>
+              )}
             </div>
           </CardContent>
         </Card>

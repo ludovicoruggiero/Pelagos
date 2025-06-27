@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Ship, Plus, AlertCircle } from "lucide-react"
+import { Plus, AlertCircle } from "lucide-react" // Removed Ship icon
 import { projectsService, type CreateProjectData } from "@/lib/services/projects-service"
 import { notificationService } from "@/lib/services/notification-service"
 
@@ -98,14 +98,7 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Ship className="h-8 w-8 text-white" />
-        </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Create New Project</h2>
-        <p className="text-slate-600">Set up a new maritime environmental assessment project</p>
-      </div>
+      {/* Removed Header Section (icon, title, description) */}
 
       {/* Form */}
       <Card>
@@ -151,7 +144,7 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
             <div>
               <Label htmlFor="vessel_type">Vessel Type *</Label>
               <Select value={formData.vessel_type} onValueChange={(value) => handleInputChange("vessel_type", value)}>
-                <SelectTrigger className={errors.vessel_type ? "border-red-500" : ""}>
+                <SelectTrigger className={errors.vessel_type ? "border-red-500" : ""} aria-label="Select vessel type">
                   <SelectValue placeholder="Select vessel type" />
                 </SelectTrigger>
                 <SelectContent>

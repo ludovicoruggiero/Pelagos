@@ -1,5 +1,4 @@
 import { supabase, type DatabaseMaterial } from "./supabase"
-import { CACHE_DURATIONS } from "./constants"
 
 export interface Material {
   id: string
@@ -13,13 +12,8 @@ export interface Material {
 }
 
 export class MaterialsDatabase {
-  private cache: Material[] = []
-  private lastFetch = 0
-  private readonly CACHE_DURATION = CACHE_DURATIONS.MATERIALS
-
   constructor() {
-    // Load initial data
-    this.loadMaterials()
+    // No initial load needed here, as it will be handled by the component's useEffect
   }
 
   // Convert from database format to application format
@@ -50,72 +44,65 @@ export class MaterialsDatabase {
     }
   }
 
-  // Load materials from Supabase
-  private async loadMaterials(): Promise<void> {
+  /**
+   * Fetches materials with pagination and filtering applied directly in the database.
+   * @param searchTerm Term to search in material names.
+   * @param category Category to filter by. Use "all" for no category filter.
+   * @param offset Starting offset for pagination.
+   * @param limit Number of materials to fetch.
+   * @returns An object containing the fetched materials and the total count of matching materials.
+   */
+  async getPaginatedAndFilteredMaterials(
+    searchTerm: string,
+    category: string,
+    offset: number,
+    limit: number,
+  ): Promise<{ data: Material[]; totalCount: number }> {
     try {
-      const { data, error } = await supabase.from("materials").select("*").order("name")
+      let query = supabase.from("materials").select("*", { count: "exact" }).order("name")
+
+      // Apply search term to name
+      if (searchTerm) {
+        query = query.ilike("name", `%${searchTerm}%`)
+      }
+
+      // Apply category filter
+      if (category !== "all") {
+        query = query.eq("category", category)
+      }
+
+      // Apply pagination
+      query = query.range(offset, offset + limit - 1)
+
+      const { data, count, error } = await query
 
       if (error) {
-        console.error("Error loading materials:", error)
-        return
+        console.error("Error fetching paginated and filtered materials:", error)
+        throw new Error(error.message || "Failed to fetch materials from database.")
       }
 
-      if (data) {
-        this.cache = data.map(this.dbToMaterial)
-        this.lastFetch = Date.now()
+      return {
+        data: data ? data.map(this.dbToMaterial) : [],
+        totalCount: count || 0,
       }
     } catch (error) {
-      console.error("Error connecting to Supabase:", error)
+      console.error("Error in getPaginatedAndFilteredMaterials:", error)
+      throw error
     }
   }
 
-  // Check if cache is valid
-  private isCacheValid(): boolean {
-    return Date.now() - this.lastFetch < this.CACHE_DURATION
-  }
-
-  // Get all materials
-  async getAllMaterials(): Promise<Material[]> {
-    if (!this.isCacheValid()) {
-      await this.loadMaterials()
-    }
-    return [...this.cache]
-  }
-
-  // Search material by name or alias
-  async findMaterial(searchTerm: string): Promise<Material | null> {
-    const materials = await this.getAllMaterials()
-    const term = searchTerm.toLowerCase().trim()
-
-    return (
-      materials.find(
-        (material) =>
-          material.name.toLowerCase().includes(term) ||
-          material.aliases.some((alias) => alias.toLowerCase().includes(term) || term.includes(alias.toLowerCase())),
-      ) || null
-    )
-  }
-
-  // Search materials by category
-  async getMaterialsByCategory(category: string): Promise<Material[]> {
-    const materials = await this.getAllMaterials()
-    return materials.filter((material) => material.category.toLowerCase() === category.toLowerCase())
-  }
+  // The following methods will now directly interact with Supabase without relying on a client-side cache.
+  // They will trigger a refresh in the UI by causing a re-fetch via `getPaginatedAndFilteredMaterials`.
 
   // Add new material
   async addMaterial(material: Material): Promise<boolean> {
     try {
       const dbMaterial = this.materialToDb(material)
-
       const { error } = await supabase.from("materials").insert([dbMaterial])
-
       if (error) {
         console.error("Error adding material:", error)
         return false
       }
-
-      // Update cache
-      this.cache.push(material)
       return true
     } catch (error) {
       console.error("Error adding material:", error)
@@ -126,13 +113,19 @@ export class MaterialsDatabase {
   // Update existing material
   async updateMaterial(id: string, updates: Partial<Material>): Promise<boolean> {
     try {
-      // Find existing material
-      const existingMaterial = this.cache.find((m) => m.id === id)
-      if (!existingMaterial) {
+      // Fetch existing material to merge updates, as we don't have a local cache
+      const { data: existingData, error: fetchError } = await supabase
+        .from("materials")
+        .select("*")
+        .eq("id", id)
+        .single()
+
+      if (fetchError || !existingData) {
+        console.error("Error fetching material for update:", fetchError)
         return false
       }
 
-      // Create updated material
+      const existingMaterial = this.dbToMaterial(existingData)
       const updatedMaterial = { ...existingMaterial, ...updates }
       const dbUpdates = this.materialToDb(updatedMaterial)
 
@@ -148,13 +141,6 @@ export class MaterialsDatabase {
         console.error("Error updating material:", error)
         return false
       }
-
-      // Update cache
-      const index = this.cache.findIndex((m) => m.id === id)
-      if (index !== -1) {
-        this.cache[index] = updatedMaterial
-      }
-
       return true
     } catch (error) {
       console.error("Error updating material:", error)
@@ -166,14 +152,10 @@ export class MaterialsDatabase {
   async removeMaterial(id: string): Promise<boolean> {
     try {
       const { error } = await supabase.from("materials").delete().eq("id", id)
-
       if (error) {
         console.error("Error removing material:", error)
         return false
       }
-
-      // Update cache
-      this.cache = this.cache.filter((m) => m.id !== id)
       return true
     } catch (error) {
       console.error("Error removing material:", error)
@@ -185,14 +167,10 @@ export class MaterialsDatabase {
   async clearAllMaterials(): Promise<boolean> {
     try {
       const { error } = await supabase.from("materials").delete().neq("id", "") // Delete all records
-
       if (error) {
         console.error("Error clearing all materials:", error)
         return false
       }
-
-      // Empty cache
-      this.cache = []
       return true
     } catch (error) {
       console.error("Error clearing all materials:", error)
@@ -203,17 +181,13 @@ export class MaterialsDatabase {
   // Import materials from array
   async importMaterials(materials: Material[]): Promise<number> {
     let importedCount = 0
-
     for (const material of materials) {
       try {
-        // Validate that material has essential fields
         if (material.name && material.category && typeof material.gwpFactor === "number") {
-          // Ensure it has a unique ID
           const materialWithId = {
             ...material,
             id: material.id || `imported_${Date.now()}_${importedCount}`,
           }
-
           const success = await this.addMaterial(materialWithId)
           if (success) {
             importedCount++
@@ -223,34 +197,43 @@ export class MaterialsDatabase {
         console.warn("Material skipped due to error:", material, error)
       }
     }
-
     return importedCount
   }
 
-  // Export all materials
+  // Export all materials (still fetches all for export)
   async exportMaterials(): Promise<Material[]> {
-    return await this.getAllMaterials()
+    try {
+      const { data, error } = await supabase.from("materials").select("*").order("name")
+      if (error) {
+        console.error("Error exporting materials:", error)
+        throw new Error(error.message || "Failed to export materials.")
+      }
+      return data ? data.map(this.dbToMaterial) : []
+    } catch (error) {
+      console.error("Error in exportMaterials:", error)
+      throw error
+    }
   }
 
-  // Force cache refresh
-  async refreshCache(): Promise<void> {
-    this.lastFetch = 0
-    await this.loadMaterials()
-  }
+  // Reset to defaults (assuming this involves clearing and re-inserting default data)
+  async resetToDefaults(): Promise<boolean> {
+    try {
+      // This is a placeholder. In a real app, you'd have a way to load default data.
+      // For now, it clears all and then you'd re-insert defaults.
+      const cleared = await this.clearAllMaterials()
+      if (!cleared) return false
 
-  // Get database statistics
-  async getStats(): Promise<{
-    totalMaterials: number
-    categories: string[]
-    lastUpdate: Date | null
-  }> {
-    const materials = await this.getAllMaterials()
-    const categories = Array.from(new Set(materials.map((m) => m.category)))
-
-    return {
-      totalMaterials: materials.length,
-      categories,
-      lastUpdate: this.lastFetch > 0 ? new Date(this.lastFetch) : null,
+      // Example: Re-insert some default materials (replace with actual default data logic)
+      // const defaultMaterials: Material[] = [
+      //   { id: "default_1", name: "Steel", aliases: ["Fe"], category: "Metals", gwpFactor: 2.5, unit: "kg" },
+      //   { id: "default_2", name: "Aluminum", aliases: ["Al"], category: "Metals", gwpFactor: 10, unit: "kg" },
+      // ];
+      // const imported = await this.importMaterials(defaultMaterials);
+      // return imported > 0;
+      return true // Assuming clearAllMaterials is sufficient for "reset" for now
+    } catch (error) {
+      console.error("Error resetting to defaults:", error)
+      return false
     }
   }
 }

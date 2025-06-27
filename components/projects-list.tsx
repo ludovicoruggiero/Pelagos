@@ -152,13 +152,26 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-900">My Projects</h2>
-          <Button onClick={onCreateNew} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
+        {/* Skeleton for Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4">
+                <div className="h-6 bg-slate-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
+        {/* Skeleton for Filters and New Project Button */}
+        <Card className="p-4 animate-pulse">
+          <CardContent className="p-0 flex flex-col sm:flex-row gap-4 items-center">
+            <div className="h-10 bg-slate-200 rounded flex-1 w-full sm:w-auto"></div>
+            <div className="h-10 bg-slate-200 rounded w-full sm:w-48"></div>
+            <div className="h-10 bg-slate-200 rounded w-full sm:w-auto"></div>
+          </CardContent>
+        </Card>
+        {/* Skeleton for Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -176,18 +189,6 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">My Projects</h2>
-          <p className="text-slate-600">Manage your maritime environmental assessments</p>
-        </div>
-        <Button onClick={onCreateNew} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -239,31 +240,37 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
         </Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Search projects..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="processing">Processing</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Filters and New Project Button */}
+      <Card className="p-4">
+        <CardContent className="p-0 flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full sm:w-auto">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-48">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={onCreateNew} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Projects Grid */}
       {filteredProjects.length === 0 ? (

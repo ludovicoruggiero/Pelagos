@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Loader2, Edit, Trash2, LinkIcon } from "lucide-react"
+import { PlusCircle, Loader2, Edit, Trash2, LinkIcon, X } from "lucide-react" // Added X for close button
 import { ecodesignService, type Source } from "@/lib/services/ecodesign-service"
 import { useToast } from "@/hooks/use-toast"
 import AddEditSourceDialog from "./add-edit-source-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import Image from "next/image"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import Dialog components
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog" // Import Dialog components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card" // Import Card components
 
 export default function SourceManager() {
   const [sources, setSources] = useState<Source[]>([])
@@ -115,115 +116,127 @@ export default function SourceManager() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Manage Sources</h2>
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-2xl font-bold">Manage Sources</CardTitle>
         <Button onClick={handleAddSource}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add New Source
         </Button>
-      </div>
-
-      {sources.length === 0 ? (
-        <div className="text-center py-8 text-slate-500">No sources found. Click 'Add New Source' to get started.</div>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[200px]">Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="w-[80px]">Image</TableHead>
-                <TableHead className="w-[120px] text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sources.map((source) => (
-                <TableRow key={source.id}>
-                  <TableCell className="font-medium">
-                    {source.link ? (
-                      <a
-                        href={source.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline flex items-center gap-1"
-                      >
-                        {source.name} <LinkIcon className="h-4 w-4" />
-                      </a>
-                    ) : (
-                      source.name
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {source.description ? (
-                      <span className="text-sm text-gray-500 line-clamp-2">{source.description}</span>
-                    ) : (
-                      <span className="text-gray-400 italic">No description</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {source.image_url ? (
-                      <button
-                        onClick={() => handleImageClick(source.image_url)} // Add onClick handler
-                        className="cursor-pointer"
-                      >
-                        <Image
-                          src={source.image_url || "/placeholder.svg"}
-                          alt={source.name}
-                          width={40}
-                          height={40}
-                          className="object-cover rounded-md"
-                        />
-                      </button>
-                    ) : (
-                      <span className="text-gray-400 italic">No image</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditSource(source)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDeleteSource(source.id)}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      <AddEditSourceDialog
-        isOpen={isAddEditDialogOpen}
-        onClose={() => setIsAddEditDialogOpen(false)}
-        onSave={handleSaveSource}
-        initialData={editingSource}
-      />
-
-      {/* Image Preview Dialog */}
-      <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
-          <DialogHeader className="p-4 pb-0">
-            <DialogTitle>Image Preview</DialogTitle>
-          </DialogHeader>
-          <div className="flex justify-center items-center p-4">
-            {previewImageUrl ? (
-              <Image
-                src={previewImageUrl || "/placeholder.svg"}
-                alt="Preview"
-                width={500} // Adjust as needed for larger view
-                height={500} // Adjust as needed for larger view
-                className="max-w-full h-auto object-contain"
-              />
-            ) : (
-              <p>No image to display.</p>
-            )}
+      </CardHeader>
+      <CardContent>
+        {sources.length === 0 ? (
+          <div className="text-center py-8 text-slate-500">
+            No sources found. Click 'Add New Source' to get started.
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px]">Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-[80px]">Image</TableHead>
+                  <TableHead className="w-[120px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sources.map((source) => (
+                  <TableRow key={source.id}>
+                    <TableCell className="font-medium">
+                      {source.link ? (
+                        <a
+                          href={source.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          {source.name} <LinkIcon className="h-4 w-4" />
+                        </a>
+                      ) : (
+                        source.name
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {source.description ? (
+                        <span className="text-sm text-gray-500 line-clamp-2">{source.description}</span>
+                      ) : (
+                        <span className="text-gray-400 italic">No description</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {source.image_url ? (
+                        <button
+                          onClick={() => handleImageClick(source.image_url)} // Add onClick handler
+                          className="cursor-pointer"
+                        >
+                          <Image
+                            src={source.image_url || "/placeholder.svg"}
+                            alt={source.name}
+                            width={40}
+                            height={40}
+                            className="object-cover rounded-md"
+                          />
+                        </button>
+                      ) : (
+                        <span className="text-gray-400 italic">No image</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEditSource(source)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDeleteSource(source.id)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        <AddEditSourceDialog
+          isOpen={isAddEditDialogOpen}
+          onClose={() => setIsAddEditDialogOpen(false)}
+          onSave={handleSaveSource}
+          initialData={editingSource}
+        />
+
+        {/* Image Preview Dialog */}
+        <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
+          <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
+            <DialogHeader className="p-4 pb-0">
+              <DialogTitle>Image Preview</DialogTitle>
+              <DialogDescription className="sr-only">A larger view of the selected image.</DialogDescription>
+              <Button
+                variant="ghost"
+                onClick={() => setIsImagePreviewOpen(false)}
+                className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </DialogHeader>
+            <div className="flex justify-center items-center p-4">
+              {previewImageUrl ? (
+                <Image
+                  src={previewImageUrl || "/placeholder.svg"}
+                  alt="Preview"
+                  width={500} // Adjust as needed for larger view
+                  height={500} // Adjust as needed for larger view
+                  className="max-w-full h-auto object-contain"
+                />
+              ) : (
+                <p>No image to display.</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
   )
 }

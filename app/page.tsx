@@ -233,7 +233,7 @@ export default function LightshipweightGWPTool() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm border-none">
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -269,7 +269,8 @@ export default function LightshipweightGWPTool() {
                   {activeView === "calculator" && getCurrentStepInfo().description}
                   {activeView === "materials" && "Manage your materials library"}
                   {activeView === "projects" && "Manage your projects"}
-                  {activeView === "create-project" && "Create a new project"}
+                  {activeView === "create-project" && "Set up a new environmental assessment project"}{" "}
+                  {/* Updated description */}
                   {activeView === "ecodesign" && "Life Cycle Design guidelines and strategies"}
                 </p>
               </div>
