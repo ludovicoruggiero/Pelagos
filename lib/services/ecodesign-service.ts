@@ -300,6 +300,92 @@ class EcodesignService {
     return this.#normalizeGuideline(data)
   }
 
+  async createGuideline(guidelineData: any): Promise<Guideline> {
+    // Start a transaction by creating the main guideline first
+    const { data: guideline, error: guidelineError } = await supabase
+      .from("eco_guidelines")
+      .insert({
+        title: guidelineData.title,
+        description: guidelineData.description,
+        priority: guidelineData.priority,
+        substrategy_id: guidelineData.substrategy_id,
+      })
+      .select()
+      .single()
+
+    if (guidelineError) throw new Error(`Failed to create guideline: ${guidelineError.message}`)
+
+    // Now insert all the relationships
+    await this.#insertGuidelineRelationships(guideline.id, guidelineData)
+
+    // Fetch and return the complete guideline
+    const completeGuideline = await this.getGuidelineById(guideline.id)
+    if (!completeGuideline) throw new Error("Failed to fetch created guideline")
+
+    return completeGuideline
+  }
+
+  async updateGuideline(id: string, guidelineData: any): Promise<Guideline> {
+    // Update the main guideline
+    const { error: guidelineError } = await supabase
+      .from("eco_guidelines")
+      .update({
+        title: guidelineData.title,
+        description: guidelineData.description,
+        priority: guidelineData.priority,
+        substrategy_id: guidelineData.substrategy_id,
+      })
+      .eq("id", id)
+
+    if (guidelineError) throw new Error(`Failed to update guideline: ${guidelineError.message}`)
+
+    // Delete existing relationships
+    await this.#deleteGuidelineRelationships(id)
+
+    // Insert new relationships
+    await this.#insertGuidelineRelationships(id, guidelineData)
+
+    // Fetch and return the complete guideline
+    const completeGuideline = await this.getGuidelineById(id)
+    if (!completeGuideline) throw new Error("Failed to fetch updated guideline")
+
+    return completeGuideline
+  }
+
+  async deleteGuideline(id: string): Promise<void> {
+    // Delete relationships first
+    await this.#deleteGuidelineRelationships(id)
+
+    // Delete the main guideline
+    const { error } = await supabase.from("eco_guidelines").delete().eq("id", id)
+    if (error) throw new Error(`Failed to delete guideline: ${error.message}`)
+  }
+
+  async deleteAllGuidelines(): Promise<void> {
+    // Delete all relationship tables first
+    const relationshipTables = [
+      "eco_guideline_target_groups",
+      "eco_guideline_implementation_groups",
+      "eco_guideline_dependencies",
+      "eco_guideline_hull_types",
+      "eco_guideline_propulsion_types",
+      "eco_guideline_yacht_size_classes",
+      "eco_guideline_operational_profiles",
+      "eco_guideline_trls",
+      "eco_guideline_life_cycle_phases",
+      "eco_guideline_sources",
+    ]
+
+    for (const table of relationshipTables) {
+      const { error } = await supabase.from(table).delete().neq("guideline_id", "")
+      if (error) throw new Error(`Failed to delete from ${table}: ${error.message}`)
+    }
+
+    // Delete all guidelines
+    const { error } = await supabase.from("eco_guidelines").delete().neq("id", "")
+    if (error) throw new Error(`Failed to delete all guidelines: ${error.message}`)
+  }
+
   /* --------------------------- private helpers --------------------------- */
   #normalizeGuideline = (raw: any): Guideline => ({
     ...raw,
@@ -314,6 +400,58 @@ class EcodesignService {
     life_cycle_phases: raw.life_cycle_phases?.map((r: any) => r.life_cycle_phases) || [],
     sources: raw.sources?.map((r: any) => r.sources) || [],
   })
+
+  async #insertGuidelineRelationships(guidelineId: string, data: any) {
+    const insertRelationship = async (table: string, field: string, ids: string[]) => {
+      if (ids && ids.length > 0) {
+        const records = ids.map((id) => ({
+          guideline_id: guidelineId,
+          [field]: id,
+        }))
+        const { error } = await supabase.from(table).insert(records)
+        if (error) throw new Error(`Failed to insert ${table}: ${error.message}`)
+      }
+    }
+
+    await Promise.all([
+      insertRelationship("eco_guideline_target_groups", "target_group_id", data.target_group_ids || []),
+      insertRelationship(
+        "eco_guideline_implementation_groups",
+        "implementation_group_id",
+        data.implementation_group_ids || [],
+      ),
+      insertRelationship("eco_guideline_dependencies", "dependent_group_id", data.dependency_ids || []),
+      insertRelationship("eco_guideline_hull_types", "hull_type_id", data.hull_type_ids || []),
+      insertRelationship("eco_guideline_propulsion_types", "propulsion_type_id", data.propulsion_type_ids || []),
+      insertRelationship("eco_guideline_yacht_size_classes", "size_class_id", data.yacht_size_class_ids || []),
+      insertRelationship("eco_guideline_operational_profiles", "profile_id", data.operational_profile_ids || []),
+      insertRelationship("eco_guideline_trls", "trl_id", data.trl_ids || []),
+      insertRelationship("eco_guideline_life_cycle_phases", "phase_id", data.life_cycle_phase_ids || []),
+      insertRelationship("eco_guideline_sources", "source_id", data.source_ids || []),
+    ])
+  }
+
+  async #deleteGuidelineRelationships(guidelineId: string) {
+    const relationshipTables = [
+      "eco_guideline_target_groups",
+      "eco_guideline_implementation_groups",
+      "eco_guideline_dependencies",
+      "eco_guideline_hull_types",
+      "eco_guideline_propulsion_types",
+      "eco_guideline_yacht_size_classes",
+      "eco_guideline_operational_profiles",
+      "eco_guideline_trls",
+      "eco_guideline_life_cycle_phases",
+      "eco_guideline_sources",
+    ]
+
+    await Promise.all(
+      relationshipTables.map(async (table) => {
+        const { error } = await supabase.from(table).delete().eq("guideline_id", guidelineId)
+        if (error) throw new Error(`Failed to delete from ${table}: ${error.message}`)
+      }),
+    )
+  }
 }
 
 export const ecodesignService = new EcodesignService()

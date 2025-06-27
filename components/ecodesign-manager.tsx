@@ -196,6 +196,7 @@ export default function EcodesignManager() {
   const handleGuidelineDeleted = (guidelineId: string) => {
     setGuidelines((prev) => prev.filter((g) => g.id !== guidelineId))
     setSelectedGuideline(null)
+    setEditingGuideline(null) // Close editor after deletion
   }
 
   const handleDeleteAllGuidelines = async () => {
@@ -293,6 +294,7 @@ export default function EcodesignManager() {
         substrategies={substrategies}
         onSave={editingGuideline ? handleGuidelineUpdated : handleGuidelineCreated}
         onCancel={() => setEditingGuideline(null)}
+        onDelete={isAdmin ? handleGuidelineDeleted : undefined} // Pass the onDelete handler
       />
     )
   }

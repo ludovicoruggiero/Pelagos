@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Save, X } from "lucide-react"
+import { ArrowLeft, Save, X, Trash2 } from "lucide-react" // Import Trash2
 import type {
   Guideline,
   Strategy,
@@ -25,6 +25,17 @@ import type {
   Source,
 } from "@/lib/services/ecodesign-service"
 import { ecodesignService } from "@/lib/services/ecodesign-service"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog" // Import AlertDialog components
+import { useToast } from "@/components/ui/use-toast" // Import useToast
 
 interface GuidelineEditorProps {
   guideline?: Guideline | null
@@ -32,6 +43,7 @@ interface GuidelineEditorProps {
   substrategies: Substrategy[]
   onSave: (guideline: Guideline) => void
   onCancel: () => void
+  onDelete?: (guidelineId: string) => void // Add onDelete prop
 }
 
 export default function GuidelineEditor({
@@ -40,6 +52,7 @@ export default function GuidelineEditor({
   substrategies,
   onSave,
   onCancel,
+  onDelete,
 }: GuidelineEditorProps) {
   const [formData, setFormData] = useState({
     title: guideline?.title || "",
@@ -78,6 +91,8 @@ export default function GuidelineEditor({
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [selectedStrategy, setSelectedStrategy] = useState("")
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false) // New state for delete confirmation
+  const { toast } = useToast()
 
   useEffect(() => {
     if (guideline?.substrategy?.strategy_id) {
@@ -125,14 +140,18 @@ export default function GuidelineEditor({
         })
       } catch (error) {
         console.error("Failed to load lookup data:", error)
-        alert("Failed to load lookup data. Please try again.")
+        toast({
+          title: "Error",
+          description: "Failed to load lookup data. Please try again.",
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
     }
 
     loadLookupData()
-  }, [])
+  }, [toast])
 
   const filteredSubstrategies = selectedStrategy
     ? substrategies.filter((sub) => sub.strategy_id === selectedStrategy)
@@ -142,7 +161,11 @@ export default function GuidelineEditor({
     e.preventDefault()
 
     if (!formData.title.trim() || !formData.substrategy_id) {
-      alert("Please fill in all required fields")
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields (Title and Substrategy).",
+        variant: "destructive",
+      })
       return
     }
 
@@ -158,16 +181,55 @@ export default function GuidelineEditor({
         // Update existing guideline
         const updated = await ecodesignService.updateGuideline(guideline.id, guidelineData)
         onSave(updated)
+        toast({
+          title: "Success",
+          description: "Guideline updated successfully!",
+          variant: "default",
+        })
       } else {
         // Create new guideline
         const created = await ecodesignService.createGuideline(guidelineData)
         onSave(created)
+        toast({
+          title: "Success",
+          description: "Guideline created successfully!",
+          variant: "default",
+        })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save guideline:", error)
-      alert("Failed to save guideline. Please try again.")
+      toast({
+        title: "Error",
+        description: `Failed to save guideline: ${error.message}`,
+        variant: "destructive",
+      })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!guideline?.id || !onDelete) return
+
+    try {
+      setSaving(true)
+      await ecodesignService.deleteGuideline(guideline.id)
+      onDelete(guideline.id)
+      toast({
+        title: "Success",
+        description: "Guideline deleted successfully!",
+        variant: "default",
+      })
+    } catch (error: any) {
+      console.error("Failed to delete guideline:", error)
+      toast({
+        title: "Error",
+        description: `Failed to delete guideline: ${error.message}`,
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+      setShowDeleteConfirmation(false)
     }
   }
 
@@ -265,7 +327,18 @@ export default function GuidelineEditor({
           <h1 className="text-2xl font-bold text-slate-900">{isEditing ? "Edit Guideline" : "Create New Guideline"}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={onCancel} className="flex items-center gap-2">
+          {isEditing && onDelete && (
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteConfirmation(true)}
+              className="flex items-center gap-2"
+              disabled={saving}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Guideline
+            </Button>
+          )}
+          <Button variant="outline" onClick={onCancel} className="flex items-center gap-2 bg-transparent">
             <X className="h-4 w-4" />
             Cancel
           </Button>
@@ -496,6 +569,24 @@ export default function GuidelineEditor({
           </CardContent>
         </Card>
       </form>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this guideline and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
