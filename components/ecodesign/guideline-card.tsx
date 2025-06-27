@@ -2,17 +2,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Eye, Edit, Target, Ship, Cog, Clock } from "lucide-react"
+import { Target, Ship, Cog, Clock } from "lucide-react"
 import type { Guideline } from "@/lib/services/ecodesign-service"
 
 interface GuidelineCardProps {
   guideline: Guideline
   onClick: () => void
-  onEdit?: () => void
 }
 
-export default function GuidelineCard({ guideline, onClick, onEdit }: GuidelineCardProps) {
+export default function GuidelineCard({ guideline, onClick }: GuidelineCardProps) {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "High":
@@ -27,7 +25,6 @@ export default function GuidelineCard({ guideline, onClick, onEdit }: GuidelineC
   }
 
   const getIcon = (category: string) => {
-    // Simple icon mapping based on common categories
     if (category.toLowerCase().includes("energy")) return <Cog className="h-4 w-4" />
     if (category.toLowerCase().includes("hull")) return <Ship className="h-4 w-4" />
     if (category.toLowerCase().includes("target")) return <Target className="h-4 w-4" />
@@ -35,74 +32,68 @@ export default function GuidelineCard({ guideline, onClick, onEdit }: GuidelineC
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={onClick}>
-      {" "}
-      {/* Moved onClick here */}
-      <CardHeader className="pb-3">
+    <Card className="hover:shadow-md transition-shadow cursor-pointer group h-[340px] flex flex-col" onClick={onClick}>
+      <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+            {/* Title with more height and better spacing */}
+            <CardTitle className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 h-[3.5rem] leading-relaxed mb-3">
               {guideline.title}
             </CardTitle>
-            <div className="flex items-center gap-2 mt-2">
+
+            {/* Badges with proper spacing and ellipsis */}
+            <div className="flex items-center flex-wrap gap-2 h-[32px]">
               <Badge variant="outline" className={getPriorityColor(guideline.priority)}>
                 {guideline.priority}
               </Badge>
               {guideline.substrategy?.strategy && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge
+                  variant="secondary"
+                  className="text-xs flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                  title={guideline.substrategy.strategy.name}
+                >
                   {guideline.substrategy.strategy.name}
                 </Badge>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation() // Prevent card onClick from firing
-                onClick()
-              }}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            {onEdit && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation() // Prevent card onClick from firing
-                  onEdit()
-                }}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
-        {" "}
-        {/* Removed onClick from here */}
-        <div className="space-y-3">
-          {guideline.substrategy && (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              {getIcon(guideline.substrategy.name)}
-              <span>{guideline.substrategy.name}</span>
-            </div>
-          )}
 
-          {guideline.description && <p className="text-sm text-slate-600 line-clamp-3">{guideline.description}</p>}
-
-          <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>{new Date(guideline.created_at).toLocaleDateString()}</span>
-            {guideline.implementation_groups && guideline.implementation_groups.length > 0 && (
-              <span>
-                {guideline.implementation_groups.length} implementation group
-                {guideline.implementation_groups.length !== 1 ? "s" : ""}
-              </span>
+      <CardContent className="pt-0 flex-grow flex flex-col">
+        <div className="space-y-4 flex-grow">
+          {/* Substrategy section with fixed height and full width */}
+          <div className="h-[28px] flex items-center">
+            {guideline.substrategy && (
+              <div className="flex items-center gap-2 text-sm text-slate-600 w-full min-w-0">
+                <div className="flex-shrink-0">{getIcon(guideline.substrategy.name)}</div>
+                <span
+                  className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                  title={guideline.substrategy.name}
+                >
+                  {guideline.substrategy.name}
+                </span>
+              </div>
             )}
           </div>
+
+          {/* Description with better height utilization */}
+          <div className="flex-grow min-h-[90px]">
+            <p className="text-sm text-slate-600 line-clamp-4 leading-relaxed">
+              {guideline.description || <span className="text-slate-400 italic">No description available</span>}
+            </p>
+          </div>
+        </div>
+
+        {/* Footer always at the bottom */}
+        <div className="flex items-center justify-between text-xs text-slate-500 mt-auto pt-4 border-t border-slate-100">
+          <span>{new Date(guideline.created_at).toLocaleDateString()}</span>
+          {guideline.implementation_groups && guideline.implementation_groups.length > 0 && (
+            <span className="text-right">
+              {guideline.implementation_groups.length} implementation group
+              {guideline.implementation_groups.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
