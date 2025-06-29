@@ -49,7 +49,7 @@ export default function GuidelineCard({ guideline, onClick }: GuidelineCardProps
               {guideline.substrategy?.strategy && (
                 <Badge
                   variant="secondary"
-                  className="text-xs flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                  className="text-xs max-w-[140px] overflow-hidden text-ellipsis whitespace-nowrap"
                   title={guideline.substrategy.strategy.name}
                 >
                   {guideline.substrategy.strategy.name}
@@ -62,15 +62,12 @@ export default function GuidelineCard({ guideline, onClick }: GuidelineCardProps
 
       <CardContent className="pt-0 flex-grow flex flex-col">
         <div className="space-y-4 flex-grow">
-          {/* Substrategy section with fixed height and full width */}
+          {/* Substrategy section with fixed height */}
           <div className="h-[28px] flex items-center">
             {guideline.substrategy && (
-              <div className="flex items-center gap-2 text-sm text-slate-600 w-full min-w-0">
-                <div className="flex-shrink-0">{getIcon(guideline.substrategy.name)}</div>
-                <span
-                  className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-                  title={guideline.substrategy.name}
-                >
+              <div className="flex items-center gap-2 text-sm text-slate-600 w-full">
+                {getIcon(guideline.substrategy.name)}
+                <span className="truncate flex-1" title={guideline.substrategy.name}>
                   {guideline.substrategy.name}
                 </span>
               </div>

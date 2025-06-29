@@ -1,5 +1,9 @@
-import { supabase, type DatabaseMaterial } from "./supabase"
+import { supabase } from "@/lib/supabase"
+import type { SupabaseClient } from "@supabase/supabase-js"
 
+/**
+ * Domain type used throughout the app.
+ */
 export interface Material {
   id: string
   name: string
@@ -11,12 +15,38 @@ export interface Material {
   description?: string
 }
 
+/**
+ * Row type as it comes from Supabase.
+ * (Feel free to extend if your table has more columns.)
+ */
+type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
+
+type DatabaseMaterial = {
+  id: string
+  name: string
+  aliases: string[] | null
+  category: string
+  gwp_factor: string
+  unit: string
+  density: string | null
+  description: string | null
+  created_at: string
+  updated_at: string
+}
+
 export class MaterialsDatabase {
-  constructor() {
-    // No initial load needed here, as it will be handled by the component's useEffect
+  private supabase: SupabaseClient
+  private cache: Material[] = []
+  private lastFetch = 0
+  private readonly CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+  constructor(client: SupabaseClient = supabase) {
+    this.supabase = client
+    this.loadCache()
   }
 
-  // Convert from database format to application format
+  /* ---------- helpers --------------------------------------------------- */
+
   private dbToMaterial(dbMaterial: DatabaseMaterial): Material {
     return {
       id: dbMaterial.id,
@@ -30,7 +60,6 @@ export class MaterialsDatabase {
     }
   }
 
-  // Convert from application format to database format
   private materialToDb(material: Material): Omit<DatabaseMaterial, "created_at" | "updated_at"> {
     return {
       id: material.id,
@@ -42,6 +71,87 @@ export class MaterialsDatabase {
       density: material.density,
       description: material.description,
     }
+  }
+
+  private async loadCache() {
+    try {
+      const { data, error } = await this.supabase.from("materials").select("*").order("name")
+      if (error) {
+        console.error("Error loading materials cache:", error)
+        return
+      }
+      this.cache = data ? data.map(this.dbToMaterial) : []
+      this.lastFetch = Date.now()
+    } catch (error) {
+      console.error("Error loading materials cache:", error)
+    }
+  }
+
+  private async ensureCacheValid() {
+    if (Date.now() - this.lastFetch > this.CACHE_DURATION || this.cache.length === 0) {
+      await this.loadCache()
+    }
+  }
+
+  /* ---------- CRUD ------------------------------------------------------- */
+
+  async getAllMaterials(): Promise<Material[]> {
+    await this.ensureCacheValid()
+    return [...this.cache]
+  }
+
+  async addMaterial(material: Material): Promise<boolean> {
+    try {
+      const dbMaterial = this.materialToDb(material)
+      const { error } = await this.supabase.from("materials").insert([dbMaterial])
+      if (error) {
+        console.error("Error adding material:", error)
+        return false
+      }
+      // Update cache
+      this.cache.push(material)
+      return true
+    } catch (error) {
+      console.error("Error adding material:", error)
+      return false
+    }
+  }
+
+  async findMaterial(name: string): Promise<Material | null> {
+    if (!name?.trim()) return null
+
+    await this.ensureCacheValid()
+
+    const searchTerm = name.trim().toLowerCase()
+
+    // Exact name match first
+    let bestMatch = this.cache.find((m) => m.name.toLowerCase() === searchTerm)
+    if (bestMatch) return bestMatch
+
+    // Exact alias match
+    bestMatch = this.cache.find((m) => m.aliases.some((alias) => alias.toLowerCase() === searchTerm))
+    if (bestMatch) return bestMatch
+
+    // Partial name match
+    bestMatch = this.cache.find(
+      (m) => m.name.toLowerCase().includes(searchTerm) || searchTerm.includes(m.name.toLowerCase()),
+    )
+    if (bestMatch) return bestMatch
+
+    // Partial alias match
+    bestMatch = this.cache.find((m) =>
+      m.aliases.some((alias) => alias.toLowerCase().includes(searchTerm) || searchTerm.includes(alias.toLowerCase())),
+    )
+    if (bestMatch) return bestMatch
+
+    // Fuzzy matching with word boundaries
+    const words = searchTerm.split(/\s+/)
+    bestMatch = this.cache.find((m) => {
+      const materialWords = m.name.toLowerCase().split(/\s+/)
+      return words.some((word) => materialWords.some((mWord) => mWord.includes(word) || word.includes(mWord)))
+    })
+
+    return bestMatch || null
   }
 
   /**
@@ -59,7 +169,7 @@ export class MaterialsDatabase {
     limit: number,
   ): Promise<{ data: Material[]; totalCount: number }> {
     try {
-      let query = supabase.from("materials").select("*", { count: "exact" }).order("name")
+      let query = this.supabase.from("materials").select("*", { count: "exact" }).order("name")
 
       // Apply search term to name
       if (searchTerm) {
@@ -91,45 +201,19 @@ export class MaterialsDatabase {
     }
   }
 
-  // The following methods will now directly interact with Supabase without relying on a client-side cache.
-  // They will trigger a refresh in the UI by causing a re-fetch via `getPaginatedAndFilteredMaterials`.
-
-  // Add new material
-  async addMaterial(material: Material): Promise<boolean> {
-    try {
-      const dbMaterial = this.materialToDb(material)
-      const { error } = await supabase.from("materials").insert([dbMaterial])
-      if (error) {
-        console.error("Error adding material:", error)
-        return false
-      }
-      return true
-    } catch (error) {
-      console.error("Error adding material:", error)
-      return false
-    }
-  }
-
-  // Update existing material
   async updateMaterial(id: string, updates: Partial<Material>): Promise<boolean> {
     try {
-      // Fetch existing material to merge updates, as we don't have a local cache
-      const { data: existingData, error: fetchError } = await supabase
-        .from("materials")
-        .select("*")
-        .eq("id", id)
-        .single()
-
-      if (fetchError || !existingData) {
-        console.error("Error fetching material for update:", fetchError)
+      const existingIndex = this.cache.findIndex((m) => m.id === id)
+      if (existingIndex === -1) {
+        console.error("Material not found in cache for update")
         return false
       }
 
-      const existingMaterial = this.dbToMaterial(existingData)
+      const existingMaterial = this.cache[existingIndex]
       const updatedMaterial = { ...existingMaterial, ...updates }
       const dbUpdates = this.materialToDb(updatedMaterial)
 
-      const { error } = await supabase
+      const { error } = await this.supabase
         .from("materials")
         .update({
           ...dbUpdates,
@@ -141,6 +225,9 @@ export class MaterialsDatabase {
         console.error("Error updating material:", error)
         return false
       }
+
+      // Update cache
+      this.cache[existingIndex] = updatedMaterial
       return true
     } catch (error) {
       console.error("Error updating material:", error)
@@ -148,14 +235,15 @@ export class MaterialsDatabase {
     }
   }
 
-  // Remove material
   async removeMaterial(id: string): Promise<boolean> {
     try {
-      const { error } = await supabase.from("materials").delete().eq("id", id)
+      const { error } = await this.supabase.from("materials").delete().eq("id", id)
       if (error) {
         console.error("Error removing material:", error)
         return false
       }
+      // Update cache
+      this.cache = this.cache.filter((m) => m.id !== id)
       return true
     } catch (error) {
       console.error("Error removing material:", error)
@@ -163,14 +251,15 @@ export class MaterialsDatabase {
     }
   }
 
-  // Clear all materials
   async clearAllMaterials(): Promise<boolean> {
     try {
-      const { error } = await supabase.from("materials").delete().neq("id", "") // Delete all records
+      const { error } = await this.supabase.from("materials").delete().neq("id", "")
       if (error) {
         console.error("Error clearing all materials:", error)
         return false
       }
+      // Clear cache
+      this.cache = []
       return true
     } catch (error) {
       console.error("Error clearing all materials:", error)
@@ -178,7 +267,6 @@ export class MaterialsDatabase {
     }
   }
 
-  // Import materials from array
   async importMaterials(materials: Material[]): Promise<number> {
     let importedCount = 0
     for (const material of materials) {
@@ -200,37 +288,16 @@ export class MaterialsDatabase {
     return importedCount
   }
 
-  // Export all materials (still fetches all for export)
   async exportMaterials(): Promise<Material[]> {
-    try {
-      const { data, error } = await supabase.from("materials").select("*").order("name")
-      if (error) {
-        console.error("Error exporting materials:", error)
-        throw new Error(error.message || "Failed to export materials.")
-      }
-      return data ? data.map(this.dbToMaterial) : []
-    } catch (error) {
-      console.error("Error in exportMaterials:", error)
-      throw error
-    }
+    await this.ensureCacheValid()
+    return [...this.cache]
   }
 
-  // Reset to defaults (assuming this involves clearing and re-inserting default data)
   async resetToDefaults(): Promise<boolean> {
     try {
-      // This is a placeholder. In a real app, you'd have a way to load default data.
-      // For now, it clears all and then you'd re-insert defaults.
       const cleared = await this.clearAllMaterials()
       if (!cleared) return false
-
-      // Example: Re-insert some default materials (replace with actual default data logic)
-      // const defaultMaterials: Material[] = [
-      //   { id: "default_1", name: "Steel", aliases: ["Fe"], category: "Metals", gwpFactor: 2.5, unit: "kg" },
-      //   { id: "default_2", name: "Aluminum", aliases: ["Al"], category: "Metals", gwpFactor: 10, unit: "kg" },
-      // ];
-      // const imported = await this.importMaterials(defaultMaterials);
-      // return imported > 0;
-      return true // Assuming clearAllMaterials is sufficient for "reset" for now
+      return true
     } catch (error) {
       console.error("Error resetting to defaults:", error)
       return false
