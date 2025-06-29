@@ -275,17 +275,7 @@ export default function EcodesignManager() {
     )
   }
 
-  if (selectedGuideline) {
-    return (
-      <GuidelineDetail
-        guideline={selectedGuideline}
-        onBack={() => setSelectedGuideline(null)}
-        onEdit={isAdmin ? () => setEditingGuideline(selectedGuideline) : undefined}
-        onDelete={isAdmin ? () => handleGuidelineDeleted(selectedGuideline.id) : undefined}
-      />
-    )
-  }
-
+  // IMPORTANT: Check for editingGuideline first
   if (editingGuideline) {
     return (
       <GuidelineEditor
@@ -295,6 +285,24 @@ export default function EcodesignManager() {
         onSave={editingGuideline ? handleGuidelineUpdated : handleGuidelineCreated}
         onCancel={() => setEditingGuideline(null)}
         onDelete={isAdmin ? handleGuidelineDeleted : undefined} // Pass the onDelete handler
+      />
+    )
+  }
+
+  if (selectedGuideline) {
+    return (
+      <GuidelineDetail
+        guideline={selectedGuideline}
+        onBack={() => setSelectedGuideline(null)}
+        onEdit={
+          isAdmin
+            ? () => {
+                setEditingGuideline(selectedGuideline)
+                setSelectedGuideline(null)
+              }
+            : undefined
+        } // Clear selectedGuideline on edit
+        onDelete={isAdmin ? () => handleGuidelineDeleted(selectedGuideline.id) : undefined}
       />
     )
   }
