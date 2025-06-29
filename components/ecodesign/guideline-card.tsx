@@ -25,13 +25,6 @@ export default function GuidelineCard({ guideline, onClick }: GuidelineCardProps
     }
   }
 
-  const getIcon = (category: string) => {
-    if (category.toLowerCase().includes("energy")) return <Cog className="h-4 w-4" />
-    if (category.toLowerCase().includes("hull")) return <Ship className="h-4 w-4" />
-    if (category.toLowerCase().includes("target")) return <Target className="h-4 w-4" />
-    return <Clock className="h-4 w-4" />
-  }
-
   // Function to truncate text only if it's too long for the available space
   const truncateIfNeeded = (text: string, maxLength: number) => {
     if (text.length > maxLength) {
@@ -59,11 +52,11 @@ export default function GuidelineCard({ guideline, onClick }: GuidelineCardProps
               {/* Strategy badge - darker neutral color */}
               {guideline.substrategy?.strategy && (
                 <Badge
-                  variant="secondary"
+                  variant="outline"
                   className={cn("text-xs bg-gray-200 text-gray-800 border-gray-300", "w-fit max-w-full")}
                   title={guideline.substrategy.strategy.name}
                 >
-                  {truncateIfNeeded(guideline.substrategy.strategy.name, 30)}
+                  {truncateIfNeeded(guideline.substrategy.strategy.name, 35)}
                 </Badge>
               )}
               {/* Substrategy badge - lighter neutral color */}
@@ -73,7 +66,7 @@ export default function GuidelineCard({ guideline, onClick }: GuidelineCardProps
                   className={cn("text-xs bg-gray-100 text-gray-700 border-gray-200", "w-fit max-w-full")}
                   title={guideline.substrategy.name}
                 >
-                  {truncateIfNeeded(guideline.substrategy.name, 25)}
+                  {truncateIfNeeded(guideline.substrategy.name, 35)}
                 </Badge>
               )}
             </div>

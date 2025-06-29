@@ -310,7 +310,7 @@ export default function GuidelineEditor({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading lookup data...</div>
+        <div className="text-lg">Loading...</div>
       </div>
     )
   }
@@ -324,7 +324,6 @@ export default function GuidelineEditor({
             <ArrowLeft className="h-4 w-4" />
             Back to Guidelines
           </Button>
-          <h1 className="text-2xl font-bold text-slate-900">{isEditing ? "Edit Guideline" : "Create New Guideline"}</h1>
         </div>
         <div className="flex items-center gap-2">
           {isEditing && onDelete && (
@@ -338,10 +337,6 @@ export default function GuidelineEditor({
               Delete Guideline
             </Button>
           )}
-          <Button variant="outline" onClick={onCancel} className="flex items-center gap-2 bg-transparent">
-            <X className="h-4 w-4" />
-            Cancel
-          </Button>
           <Button
             type="submit"
             form="guideline-form"
