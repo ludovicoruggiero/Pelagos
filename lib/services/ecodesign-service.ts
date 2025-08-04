@@ -147,6 +147,27 @@ class EcodesignService {
     return data ?? []
   }
 
+  async createSubstrategy(strategyId: string, name: string) {
+    const { data, error } = await supabase
+      .from("eco_substrategies")
+      .insert({ strategy_id: strategyId, name })
+      .select()
+      .single()
+    if (error) throw new Error(error.message)
+    return data as Substrategy
+  }
+
+  async updateSubstrategy(id: string, name: string) {
+    const { data, error } = await supabase.from("eco_substrategies").update({ name }).eq("id", id).select().single()
+    if (error) throw new Error(error.message)
+    return data as Substrategy
+  }
+
+  async deleteSubstrategy(id: string) {
+    const { error } = await supabase.from("eco_substrategies").delete().eq("id", id)
+    if (error) throw new Error(error.message)
+  }
+
   /* ------------------------------ LOOKUPS -------------------------------- */
   async getTargetGroups() {
     const { data, error } = await supabase.from("eco_target_groups").select("*").order("label")
