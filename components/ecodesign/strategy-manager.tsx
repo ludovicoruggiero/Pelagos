@@ -4,13 +4,14 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Target, ChevronRight } from "lucide-react"
-import type { Strategy, Substrategy } from "@/lib/services/ecodesign-service"
+import { Plus, Trash2, Target, ChevronRight, Edit2, Check, X } from "lucide-react"
+import type { Strategy, Substrategy, Guideline } from "@/lib/services/ecodesign-service"
 import { ecodesignService } from "@/lib/services/ecodesign-service"
 
 interface StrategyManagerProps {
   strategies: Strategy[]
   substrategies: Substrategy[]
+  guidelines?: Guideline[]
   onStrategiesChange: (strategies: Strategy[]) => void
   onSubstrategiesChange: (substrategies: Substrategy[]) => void
 }
@@ -18,12 +19,15 @@ interface StrategyManagerProps {
 export default function StrategyManager({
   strategies,
   substrategies,
+  guidelines = [],
   onStrategiesChange,
   onSubstrategiesChange,
 }: StrategyManagerProps) {
   const [newStrategyName, setNewStrategyName] = useState("")
   const [newSubstrategyName, setNewSubstrategyName] = useState("")
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>("")
+  const [editingSubstrategyId, setEditingSubstrategyId] = useState<string>("")
+  const [editingSubstrategyName, setEditingSubstrategyName] = useState("")
   const [loading, setLoading] = useState(false)
 
   const handleCreateStrategy = async () => {
@@ -85,6 +89,40 @@ export default function StrategyManager({
       console.error("Failed to delete substrategy:", error)
       alert("Failed to delete substrategy")
     }
+  }
+
+  const handleEditSubstrategy = (substrategy: Substrategy) => {
+    setEditingSubstrategyId(substrategy.id)
+    setEditingSubstrategyName(substrategy.name)
+  }
+
+  const handleSaveSubstrategy = async () => {
+    if (!editingSubstrategyName.trim()) return
+
+    try {
+      setLoading(true)
+      const updatedSubstrategy = await ecodesignService.updateSubstrategy(
+        editingSubstrategyId,
+        editingSubstrategyName.trim(),
+      )
+      onSubstrategiesChange(substrategies.map((s) => (s.id === editingSubstrategyId ? updatedSubstrategy : s)))
+      setEditingSubstrategyId("")
+      setEditingSubstrategyName("")
+    } catch (error) {
+      console.error("Failed to update substrategy:", error)
+      alert("Failed to update substrategy")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingSubstrategyId("")
+    setEditingSubstrategyName("")
+  }
+
+  const getGuidelinesCount = (substrategyId: string) => {
+    return guidelines.filter((g) => g.substrategy_id === substrategyId).length
   }
 
   const selectedStrategy = strategies.find((s) => s.id === selectedStrategyId)
@@ -180,16 +218,58 @@ export default function StrategyManager({
                   {filteredSubstrategies.map((substrategy) => (
                     <div key={substrategy.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                       <div className="flex-1">
-                        <div className="font-medium">{substrategy.name}</div>
+                        {editingSubstrategyId === substrategy.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={editingSubstrategyName}
+                              onChange={(e) => setEditingSubstrategyName(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter") handleSaveSubstrategy()
+                                if (e.key === "Escape") handleCancelEdit()
+                              }}
+                              className="flex-1"
+                              autoFocus
+                            />
+                            <Button
+                              size="sm"
+                              onClick={handleSaveSubstrategy}
+                              disabled={loading || !editingSubstrategyName.trim()}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-medium">{substrategy.name}</div>
+                            <div className="text-sm text-slate-600">
+                              {getGuidelinesCount(substrategy.id)} guidelines
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteSubstrategy(substrategy.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {editingSubstrategyId !== substrategy.id && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditSubstrategy(substrategy)}
+                            className="text-slate-600 hover:text-slate-700"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteSubstrategy(substrategy.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {filteredSubstrategies.length === 0 && (
