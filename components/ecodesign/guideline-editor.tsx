@@ -123,7 +123,7 @@ export default function GuidelineEditor({
           ecodesignService.getYachtSizeClasses(),
           ecodesignService.getOperationalProfiles(),
           ecodesignService.getTechnologyReadinessLevels(),
-          ecodesignService.getLifeCyclePhases(),
+          ecodesignService.getLifeCyclePhases(), // Corrected variable name
           ecodesignService.getSources(),
         ])
 
@@ -233,9 +233,23 @@ export default function GuidelineEditor({
     }
   }
 
-  const handleMultiSelectChange = (field: keyof typeof selectedItems, value: string) => {
+  const handleMultiSelectChange = (
+    field: keyof typeof selectedItems,
+    value: string,
+    options: Array<{ id: string; label: string; code?: string }>,
+  ) => {
     setSelectedItems((prev) => {
       const currentValues = prev[field]
+
+      if (value === "select-all") {
+        // Select all available options
+        const allOptionIds = options.map((opt) => opt.id)
+        return {
+          ...prev,
+          [field]: allOptionIds,
+        }
+      }
+
       const newValues = currentValues.includes(value)
         ? currentValues.filter((id) => id !== value)
         : [...currentValues, value]
@@ -262,6 +276,7 @@ export default function GuidelineEditor({
   ) => {
     const selectedValues = selectedItems[field]
     const selectedOptions = options.filter((opt) => selectedValues.includes(opt.id))
+    const hasUnselectedOptions = options.length > selectedValues.length
 
     return (
       <div className="space-y-2">
@@ -287,11 +302,19 @@ export default function GuidelineEditor({
         )}
 
         {/* Dropdown to add items */}
-        <Select onValueChange={(value) => handleMultiSelectChange(field, value)}>
-          <SelectTrigger>
+        <Select
+          onValueChange={(value) => handleMultiSelectChange(field, value, options)}
+          disabled={!hasUnselectedOptions}
+        >
+          <SelectTrigger disabled={!hasUnselectedOptions}>
             <SelectValue placeholder={`Select ${label.toLowerCase()}...`} />
           </SelectTrigger>
           <SelectContent>
+            {hasUnselectedOptions && (
+              <SelectItem value="select-all" className="font-semibold text-blue-600">
+                Select All
+              </SelectItem>
+            )}
             {options
               .filter((opt) => !selectedValues.includes(opt.id))
               .map((option) => (
