@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Target, ChevronRight, Edit2, Check, X } from "lucide-react"
+import { Plus, Trash2, Edit2, Check, X, ArrowLeft } from "lucide-react"
 import type { Strategy, Substrategy, Guideline } from "@/lib/services/ecodesign-service"
 import { ecodesignService } from "@/lib/services/ecodesign-service"
 
@@ -69,7 +69,6 @@ export default function StrategyManager({
       await ecodesignService.deleteStrategy(strategyId)
       onStrategiesChange(strategies.filter((s) => s.id !== strategyId))
       onSubstrategiesChange(substrategies.filter((s) => s.strategy_id !== strategyId))
-      // Clear selection if deleted strategy was selected
       if (selectedStrategyId === strategyId) {
         setSelectedStrategyId("")
       }
@@ -131,20 +130,14 @@ export default function StrategyManager({
     : []
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Strategies */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Strategies
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+    <Card>
+      <CardContent className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Strategies */}
+          <div className="space-y-4">
             <div className="flex gap-2">
               <Input
-                placeholder="New strategy name"
+                placeholder="Add new strategy..."
                 value={newStrategyName}
                 onChange={(e) => setNewStrategyName(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleCreateStrategy()}
@@ -154,25 +147,24 @@ export default function StrategyManager({
               </Button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 h-[calc(100vh-350px)] overflow-y-auto">
               {strategies.map((strategy) => (
                 <div
                   key={strategy.id}
-                  className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                  className={`group p-3 rounded-lg cursor-pointer transition-colors ${
                     selectedStrategyId === strategy.id
-                      ? "bg-blue-100 border-2 border-blue-300"
-                      : "bg-slate-50 hover:bg-slate-100"
+                      ? "bg-blue-50 border border-blue-200"
+                      : "hover:bg-gray-50 border border-transparent"
                   }`}
                   onClick={() => setSelectedStrategyId(strategy.id)}
                 >
-                  <div className="flex-1">
-                    <div className="font-medium">{strategy.name}</div>
-                    <div className="text-sm text-slate-600">
-                      {substrategies.filter((s) => s.strategy_id === strategy.id).length} substrategies
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">{strategy.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {substrategies.filter((s) => s.strategy_id === strategy.id).length} substrategies
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {selectedStrategyId === strategy.id && <ChevronRight className="h-4 w-4 text-blue-600" />}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -180,7 +172,7 @@ export default function StrategyManager({
                         e.stopPropagation()
                         handleDeleteStrategy(strategy.id)
                       }}
-                      className="text-red-600 hover:text-red-700"
+                      className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -188,23 +180,20 @@ export default function StrategyManager({
                 </div>
               ))}
               {strategies.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No strategies created yet.</p>
+                <div className="text-center py-8 text-gray-500">
+                  <p>No strategies yet. Create your first one above.</p>
+                </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Substrategies */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{selectedStrategy ? `Substrategies for "${selectedStrategy.name}"` : "Substrategies"}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          {/* Substrategies */}
+          <div className="space-y-4">
             {selectedStrategyId ? (
               <>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="New substrategy name"
+                    placeholder={`Add substrategy to "${selectedStrategy?.name}"...`}
                     value={newSubstrategyName}
                     onChange={(e) => setNewSubstrategyName(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && handleCreateSubstrategy()}
@@ -214,81 +203,77 @@ export default function StrategyManager({
                   </Button>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 h-[calc(100vh-350px)] overflow-y-auto">
                   {filteredSubstrategies.map((substrategy) => (
-                    <div key={substrategy.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <div className="flex-1">
-                        {editingSubstrategyId === substrategy.id ? (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              value={editingSubstrategyName}
-                              onChange={(e) => setEditingSubstrategyName(e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === "Enter") handleSaveSubstrategy()
-                                if (e.key === "Escape") handleCancelEdit()
-                              }}
-                              className="flex-1"
-                              autoFocus
-                            />
+                    <div key={substrategy.id} className="group p-3 bg-white border rounded-lg">
+                      {editingSubstrategyId === substrategy.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={editingSubstrategyName}
+                            onChange={(e) => setEditingSubstrategyName(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") handleSaveSubstrategy()
+                              if (e.key === "Escape") handleCancelEdit()
+                            }}
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            onClick={handleSaveSubstrategy}
+                            disabled={loading || !editingSubstrategyName.trim()}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">{substrategy.name}</div>
+                            <div className="text-sm text-gray-500">{getGuidelinesCount(substrategy.id)} guidelines</div>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                             <Button
+                              variant="ghost"
                               size="sm"
-                              onClick={handleSaveSubstrategy}
-                              disabled={loading || !editingSubstrategyName.trim()}
+                              onClick={() => handleEditSubstrategy(substrategy)}
+                              className="text-gray-500 hover:text-gray-700"
                             >
-                              <Check className="h-4 w-4" />
+                              <Edit2 className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
-                              <X className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteSubstrategy(substrategy.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                        ) : (
-                          <>
-                            <div className="font-medium">{substrategy.name}</div>
-                            <div className="text-sm text-slate-600">
-                              {getGuidelinesCount(substrategy.id)} guidelines
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      {editingSubstrategyId !== substrategy.id && (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditSubstrategy(substrategy)}
-                            className="text-slate-600 hover:text-slate-700"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteSubstrategy(substrategy.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </div>
                       )}
                     </div>
                   ))}
                   {filteredSubstrategies.length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-4">No substrategies for this strategy yet.</p>
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No substrategies yet. Add one above.</p>
+                    </div>
                   )}
                 </div>
               </>
             ) : (
-              <div className="text-center py-8">
-                <Target className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-2">Select a Strategy</h3>
-                <p className="text-slate-600">
-                  Click on a strategy from the left panel to view and manage its substrategies.
-                </p>
+              <div className="flex items-center justify-center h-[calc(100vh-350px)] text-center">
+                <div>
+                  <ArrowLeft className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">Select a strategy to manage its substrategies</p>
+                </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

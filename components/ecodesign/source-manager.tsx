@@ -2,22 +2,24 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Loader2, Edit, Trash2, LinkIcon, X } from "lucide-react" // Added X for close button
+import { PlusCircle, Loader2, Edit, Trash2, LinkIcon, X, Search } from "lucide-react" // Added Search for search bar
 import { ecodesignService, type Source } from "@/lib/services/ecodesign-service"
 import { useToast } from "@/hooks/use-toast"
 import AddEditSourceDialog from "./add-edit-source-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import Image from "next/image"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog" // Import Dialog components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card" // Import Card components
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Card, CardContent, CardHeader } from "@/components/ui/card" // Removed CardTitle
+import { Input } from "@/components/ui/input" // Import Input component
 
 export default function SourceManager() {
   const [sources, setSources] = useState<Source[]>([])
   const [loading, setLoading] = useState(true)
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false)
   const [editingSource, setEditingSource] = useState<Source | null>(null)
-  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false) // New state for image preview dialog
-  const [previewImageUrl, setPreviewImageUrl] = useState("") // New state for image URL to preview
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false)
+  const [previewImageUrl, setPreviewImageUrl] = useState("")
+  const [searchTerm, setSearchTerm] = useState("") // New state for search term
   const { toast } = useToast()
 
   const fetchSources = async () => {
@@ -25,7 +27,7 @@ export default function SourceManager() {
     try {
       const data = await ecodesignService.getSources()
       setSources(data)
-      console.log("Fetched sources data:", data) // Log per debug
+      console.log("Fetched sources data:", data)
     } catch (error) {
       console.error("Failed to fetch sources:", error)
       toast({
@@ -99,13 +101,19 @@ export default function SourceManager() {
     }
   }
 
-  // New function to open image preview
   const handleImageClick = (imageUrl: string | undefined) => {
     if (imageUrl) {
       setPreviewImageUrl(imageUrl)
       setIsImagePreviewOpen(true)
     }
   }
+
+  // Filter sources based on search term
+  const filteredSources = sources.filter(
+    (source) =>
+      source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (source.description && source.description.toLowerCase().includes(searchTerm.toLowerCase())),
+  )
 
   if (loading) {
     return (
@@ -117,18 +125,32 @@ export default function SourceManager() {
 
   return (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-2xl font-bold">Manage Sources</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        {" "}
+        {/* Adjusted padding */}
+        <div className="relative flex-1 mr-4">
+          {" "}
+          {/* Added flex-1 and mr-4 for spacing */}
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search sources..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8" // Added left padding for icon
+          />
+        </div>
         <Button onClick={handleAddSource}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add New Source
         </Button>
       </CardHeader>
       <CardContent>
-        {sources.length === 0 ? (
+        {filteredSources.length === 0 && searchTerm === "" ? (
           <div className="text-center py-8 text-slate-500">
             No sources found. Click 'Add New Source' to get started.
           </div>
+        ) : filteredSources.length === 0 && searchTerm !== "" ? (
+          <div className="text-center py-8 text-slate-500">No sources found matching your search.</div>
         ) : (
           <div className="rounded-md border">
             <Table>
@@ -141,7 +163,7 @@ export default function SourceManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sources.map((source) => (
+                {filteredSources.map((source) => (
                   <TableRow key={source.id}>
                     <TableCell className="font-medium">
                       {source.link ? (
@@ -166,10 +188,7 @@ export default function SourceManager() {
                     </TableCell>
                     <TableCell>
                       {source.image_url ? (
-                        <button
-                          onClick={() => handleImageClick(source.image_url)} // Add onClick handler
-                          className="cursor-pointer"
-                        >
+                        <button onClick={() => handleImageClick(source.image_url)} className="cursor-pointer">
                           <Image
                             src={source.image_url || "/placeholder.svg"}
                             alt={source.name}
@@ -206,7 +225,6 @@ export default function SourceManager() {
           initialData={editingSource}
         />
 
-        {/* Image Preview Dialog */}
         <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
           <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
             <DialogHeader className="p-4 pb-0">
@@ -226,8 +244,8 @@ export default function SourceManager() {
                 <Image
                   src={previewImageUrl || "/placeholder.svg"}
                   alt="Preview"
-                  width={500} // Adjust as needed for larger view
-                  height={500} // Adjust as needed for larger view
+                  width={500}
+                  height={500}
                   className="max-w-full h-auto object-contain"
                 />
               ) : (

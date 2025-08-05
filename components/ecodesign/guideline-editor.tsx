@@ -456,7 +456,7 @@ export default function GuidelineEditor({
                   "target_group_ids",
                   "Target Groups",
                   lookupData.targetGroups,
-                  "Who should implement this guideline?",
+                  "Where the environmental benefit occurs",
                 )}
               </div>
               <div>

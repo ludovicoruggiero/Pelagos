@@ -428,6 +428,7 @@ export default function EcodesignManager() {
               <StrategyManager
                 strategies={strategies}
                 substrategies={substrategies}
+                guidelines={guidelines}
                 onStrategiesChange={setStrategies}
                 onSubstrategiesChange={setSubstrategies}
               />
