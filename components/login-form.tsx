@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Eye, EyeOff, LogIn, Shield, User, Zap, TrendingUp } from "lucide-react"
+import { Eye, EyeOff, LogIn, Shield, User, Zap, TrendingUp } from 'lucide-react'
 import { authService, type LoginCredentials } from "@/lib/auth"
 import { APP_CONFIG } from "@/lib/constants"
 import Image from "next/image"
@@ -78,11 +78,10 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-slate-900 font-maven">
-                  AI-powered LCA for the Yachting Industry
+                  AI-powered Sustainability Tool for the Yachting Industry
                 </h2>
                 <p className="text-slate-600 text-base leading-relaxed font-maven">
-                  Streamline your GWP calculations with AI-powered material recognition, automated PCR categorization,
-                  and industry-standard benchmarking.
+                  Perform multi-indicator environmental assessments, automate material classification, ensure PCR compliance, and access tailored eco-design guidelines.
                 </p>
               </div>
             </div>
@@ -106,8 +105,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   <Shield className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 font-maven">PCR Compliance</h3>
-                  <p className="text-sm text-slate-600 font-maven">Automatic categorization per maritime standards</p>
+                  <h3 className="font-semibold text-slate-900 font-maven">PCR &amp; Standards Compliance</h3>
+                  <p className="text-sm text-slate-600 font-maven">Ensure conformity with maritime PCRs and other industry standards.</p>
                 </div>
               </div>
 
@@ -129,7 +128,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <CardHeader className="text-center pb-6">
                 <CardTitle className="text-2xl font-bold text-slate-900 font-maven">Welcome Back</CardTitle>
                 <CardDescription className="text-slate-600 font-maven">
-                  Sign in to access your GWP assessment dashboard
+                  Sign in to access your sustainability toolkit
                 </CardDescription>
               </CardHeader>
 
@@ -243,20 +242,14 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-slate-900 font-maven">Standard User</span>
                             <Badge variant="secondary" className="text-xs font-maven">
-                              Calculator
+                              Limited Access
+
                             </Badge>
                           </div>
                           <div className="text-sm text-slate-500 font-maven">user@yacht-gwp.com</div>
                         </div>
                       </div>
                     </Button>
-                  </div>
-
-                  <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                    <p className="text-xs text-slate-600 text-center font-maven">
-                      Demo password:{" "}
-                      <code className="bg-slate-200 px-1 rounded text-slate-800 font-maven">password123</code>
-                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -266,7 +259,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <p className="font-maven">
                 {APP_CONFIG.name} v{APP_CONFIG.version}
               </p>
-              <p className="font-maven">Maritime Environmental Assessment Platform</p>
+              <p className="font-maven">by Ludovico Ruggiero – PhD, Politecnico di Milano</p>
             </div>
           </div>
         </div>

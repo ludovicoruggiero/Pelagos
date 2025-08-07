@@ -5,25 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Sidebar } from "@/components/layout/sidebar"
-import {
-  Upload,
-  FileText,
-  Calculator,
-  Ship,
-  CheckCircle,
-  Shield,
-  Menu,
-  Home,
-  BarChart3,
-  Database,
-  Bell,
-  TrendingUp,
-  Activity,
-  Zap,
-  Package,
-  Settings,
-  LogOut,
-} from "lucide-react"
+import { Upload, FileText, Calculator, Ship, CheckCircle, Shield, Menu, Home, BarChart3, Database, Bell, TrendingUp, Activity, Zap, Package, Settings, LogOut } from 'lucide-react'
 import FileUploader from "@/components/file-uploader"
 import DocumentProcessor from "@/components/document-processor"
 import ParsingValidation from "@/components/parsing-validation"
@@ -37,6 +19,14 @@ import ProjectCreator from "@/components/project-creator"
 import ProjectsList from "@/components/projects-list"
 import type { Project } from "@/lib/services/projects-service"
 import EcodesignManager from "@/components/ecodesign-manager"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 
 export default function LightshipweightGWPTool() {
   const {
@@ -277,9 +267,33 @@ export default function LightshipweightGWPTool() {
             </div>
 
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Bell className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64">
+                  <DropdownMenuLabel>Latest Updates</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="flex flex-col items-start gap-1">
+                    <span className="font-medium">New Ecodesign Guidelines Added!</span>
+                    <span className="text-xs text-muted-foreground">8/8/2025 - Check out the updated strategies.</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex flex-col items-start gap-1">
+                    <span className="font-medium">Material Database Sync Complete</span>
+                    <span className="text-xs text-muted-foreground">7/25/2025 - All materials are up to date.</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex flex-col items-start gap-1">
+                    <span className="font-medium">Performance Improvements</span>
+                    <span className="text-xs text-muted-foreground">7/10/2025 - Faster loading times for projects.</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-center text-blue-600 hover:text-blue-700 cursor-pointer">
+                    View All Notifications
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="ghost" size="sm">
                 <Settings className="h-4 w-4" />
               </Button>
