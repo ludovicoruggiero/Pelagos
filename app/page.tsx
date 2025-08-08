@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Sidebar } from "@/components/layout/sidebar"
-import { Upload, FileText, Calculator, Ship, CheckCircle, Shield, Menu, Home, BarChart3, Database, Bell, TrendingUp, Activity, Zap, Package, Settings, LogOut } from 'lucide-react'
+import { Upload, FileText, Calculator, EditIcon,Ship, CheckCircle, Shield, Menu, Home, BarChart3, Database, Bell, TrendingUp, Activity, Zap, Package, Settings, LogOut } from 'lucide-react'
 import FileUploader from "@/components/file-uploader"
 import DocumentProcessor from "@/components/document-processor"
 import ParsingValidation from "@/components/parsing-validation"
@@ -27,6 +27,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import SettingsPanel from "@/components/settings-panel"
 
 export default function LightshipweightGWPTool() {
   const {
@@ -50,6 +51,7 @@ export default function LightshipweightGWPTool() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [activeView, setActiveView] = useState("dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false)
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser()
@@ -222,6 +224,9 @@ export default function LightshipweightGWPTool() {
     return steps.find((s) => s.step === currentStep) || steps[0]
   }
 
+  // Determine if user is admin
+  const isAdmin = user && user.role === "admin"
+
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm border-none">
       <Sidebar
@@ -259,8 +264,7 @@ export default function LightshipweightGWPTool() {
                   {activeView === "calculator" && getCurrentStepInfo().description}
                   {activeView === "materials" && "Manage your materials library"}
                   {activeView === "projects" && "Manage your projects"}
-                  {activeView === "create-project" && "Set up a new environmental assessment project"}{" "}
-                  {/* Updated description */}
+                  {activeView === "create-project" && "Set up a new environmental assessment project"}
                   {activeView === "ecodesign" && "Life Cycle Design guidelines and strategies"}
                 </p>
               </div>
@@ -282,11 +286,11 @@ export default function LightshipweightGWPTool() {
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex flex-col items-start gap-1">
                     <span className="font-medium">Material Database Sync Complete</span>
-                    <span className="text-xs text-muted-foreground">7/25/2025 - All materials are up to date.</span>
+                    <span className="text-xs text-muted-foreground">25/7/2025 - All materials are up to date.</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex flex-col items-start gap-1">
                     <span className="font-medium">Performance Improvements</span>
-                    <span className="text-xs text-muted-foreground">7/10/2025 - Faster loading times for projects.</span>
+                    <span className="text-xs text-muted-foreground">10/7/2025 - Faster loading times for projects.</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-center text-blue-600 hover:text-blue-700 cursor-pointer">
@@ -294,7 +298,7 @@ export default function LightshipweightGWPTool() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={() => setIsSettingsPanelOpen(true)}>
                 <Settings className="h-4 w-4" />
               </Button>
 
@@ -312,7 +316,7 @@ export default function LightshipweightGWPTool() {
                 <div className="hidden md:block">
                   <p className="text-sm font-medium text-slate-900">{user.fullName}</p>
                   <Badge variant={user.role === "admin" ? "default" : "secondary"} className="text-xs">
-                    {user.role === "admin" ? "Administrator" : "User"}
+                    {user.role === "admin" ? "Full Access" : "Limited Access"}
                   </Badge>
                 </div>
                 <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-600 hover:text-red-600">
@@ -346,7 +350,7 @@ export default function LightshipweightGWPTool() {
                   </div>
                   <div className="hidden md:block">
                     <div className="w-24 h-24 bg-blue-500/20 rounded-full flex items-center justify-center">
-                      <Ship className="h-12 w-12 text-blue-200" />
+                      <EditIcon className="h-12 w-12 text-blue-200" />
                     </div>
                   </div>
                 </div>
@@ -532,6 +536,9 @@ export default function LightshipweightGWPTool() {
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
+
+      {/* Settings Panel */}
+      <SettingsPanel isOpen={isSettingsPanelOpen} onOpenChange={setIsSettingsPanelOpen} isAdmin={isAdmin} />
     </div>
   )
 }

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Eye, EyeOff, LogIn, Shield, User, Zap, TrendingUp } from 'lucide-react'
+import { Eye, EyeOff, LogIn, LightbulbIcon,Shield, User, Zap, TrendingUp } from 'lucide-react'
 import { authService, type LoginCredentials } from "@/lib/auth"
 import { APP_CONFIG } from "@/lib/constants"
 import Image from "next/image"
@@ -88,34 +88,44 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
             {/* Features */}
             <div className="grid grid-cols-1 gap-4">
-              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20">
+              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20 py-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                   <Zap className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 font-maven">Automated Processing</h3>
+                  <h3 className="text-slate-900 font-maven font-medium">Automated Processing</h3>
                   <p className="text-sm text-slate-600 font-maven">
                     AI-powered material recognition from documentation
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20">
+              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20 py-3">
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <Shield className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 font-maven">PCR &amp; Standards Compliance</h3>
-                  <p className="text-sm text-slate-600 font-maven">Ensure conformity with maritime PCRs and other industry standards.</p>
+                  <h3 className="text-slate-900 font-maven font-medium">PCR &amp; Standards Compliance</h3>
+                  <p className="text-sm text-slate-600 font-maven">Ensure conformity with maritime PCRs and other industry standards</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20">
+              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20 py-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-100">
+                  <LightbulbIcon className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-slate-900 font-maven font-medium">Ecodesign Guidelines</h3>
+                  <p className="text-sm text-slate-600 font-maven">Find sustainability strategies tailored to your projects</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20 py-3">
                 <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                   <TrendingUp className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 font-maven">Industry Benchmarks</h3>
+                  <h3 className="text-slate-900 font-maven font-medium">Industry Benchmarks</h3>
                   <p className="text-sm text-slate-600 font-maven">Compare against maritime industry standards</p>
                 </div>
               </div>
@@ -210,7 +220,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   <div className="space-y-3">
                     <Button
                       variant="outline"
-                      onClick={() => fillDemoCredentials("admin")}
+                      /*onClick={() => fillDemoCredentials("admin")}*/
                       className="w-full h-auto p-4 justify-start"
                     >
                       <div className="flex items-center gap-3">
@@ -224,7 +234,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                               Full Access
                             </Badge>
                           </div>
-                          <div className="text-sm text-slate-500 font-maven">admin@yacht-gwp.com</div>
+                          <div className="text-sm text-slate-500 font-maven">administrator@yacht-gwp.com</div>
                         </div>
                       </div>
                     </Button>
@@ -256,9 +266,6 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             </Card>
 
             <div className="mt-6 text-center text-sm text-slate-500">
-              <p className="font-maven">
-                {APP_CONFIG.name} v{APP_CONFIG.version}
-              </p>
               <p className="font-maven">by Ludovico Ruggiero – PhD, Politecnico di Milano</p>
             </div>
           </div>
