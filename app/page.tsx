@@ -5,7 +5,21 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Sidebar } from "@/components/layout/sidebar"
-import { Upload, FileText, Calculator, EditIcon,Ship, CheckCircle, Shield, Menu, Home, BarChart3, Database, Bell, TrendingUp, Activity, Zap, Package, Settings, LogOut } from 'lucide-react'
+import {
+  FileText,
+  EditIcon,
+  Ship,
+  Shield,
+  Menu,
+  Home,
+  Database,
+  Bell,
+  TrendingUp,
+  Zap,
+  Package,
+  Settings,
+  LogOut,
+} from "lucide-react"
 import FileUploader from "@/components/file-uploader"
 import DocumentProcessor from "@/components/document-processor"
 import ParsingValidation from "@/components/parsing-validation"
@@ -253,7 +267,7 @@ export default function LightshipweightGWPTool() {
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">
                   {activeView === "dashboard" && "Dashboard"}
-                  {activeView === "calculator" && "GWP Calculator"}
+                  {activeView === "calculator" && "Impact Assessment"}
                   {activeView === "materials" && "Materials Database"}
                   {activeView === "projects" && "My Projects"}
                   {activeView === "create-project" && "Create Project"}
@@ -290,7 +304,9 @@ export default function LightshipweightGWPTool() {
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex flex-col items-start gap-1">
                     <span className="font-medium">Performance Improvements</span>
-                    <span className="text-xs text-muted-foreground">10/7/2025 - Faster loading times for projects.</span>
+                    <span className="text-xs text-muted-foreground">
+                      10/7/2025 - Faster loading times for projects.
+                    </span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-center text-blue-600 hover:text-blue-700 cursor-pointer">
@@ -431,76 +447,8 @@ export default function LightshipweightGWPTool() {
             <ProjectCreator onProjectCreated={handleProjectCreated} userEmail={user.email} />
           )}
 
-          {activeView === "calculator" && !currentProject && (
-            <div className="text-center py-12">
-              <Ship className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No Project Selected</h3>
-              <p className="text-slate-600 mb-4">Create or select a project to start the GWP analysis</p>
-              <Button onClick={() => setActiveView("projects")} className="bg-blue-600 hover:bg-blue-700">
-                <Ship className="h-4 w-4 mr-2" />
-                Go to Projects
-              </Button>
-            </div>
-          )}
-
           {activeView === "calculator" && currentProject && (
             <div className="space-y-6">
-              {/* Project Info */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">{currentProject.name}</h3>
-                      <p className="text-sm text-slate-600">{currentProject.description}</p>
-                    </div>
-                    <Badge variant={currentProject.status === "completed" ? "default" : "secondary"}>
-                      {currentProject.status === "completed" ? "Completed" : "Draft"}
-                    </Badge>
-                  </div>
-
-                  {currentProject.status !== "completed" && (
-                    <div className="grid grid-cols-5 gap-4">
-                      {[
-                        { step: 1, label: "Upload", icon: Upload },
-                        { step: 2, label: "Processing", icon: Activity },
-                        { step: 3, label: "Validation", icon: CheckCircle },
-                        { step: 4, label: "Calculation", icon: Calculator },
-                        { step: 5, label: "Results", icon: BarChart3 },
-                      ].map((item) => {
-                        const Icon = item.icon
-                        const isActive = currentStep === item.step
-                        const isCompleted = currentStep > item.step
-                        return (
-                          <div
-                            key={item.step}
-                            className={`flex flex-col items-center p-3 rounded-lg transition-all ${
-                              isActive
-                                ? "bg-blue-50 border border-blue-200"
-                                : isCompleted
-                                  ? "bg-green-50 border border-green-200"
-                                  : "bg-slate-50 border border-slate-200"
-                            }`}
-                          >
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
-                                isActive
-                                  ? "bg-blue-100 text-blue-600"
-                                  : isCompleted
-                                    ? "bg-green-100 text-green-600"
-                                    : "bg-slate-100 text-slate-400"
-                              }`}
-                            >
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <span className="text-sm font-medium text-slate-900">{item.label}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
               {/* Step Content */}
               {currentStep === 1 && (
                 <FileUploader onFilesUploaded={handleFilesUploaded} uploadedFiles={uploadedFiles} />

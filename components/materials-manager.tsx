@@ -11,11 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Edit, Trash2, Search, Download, Upload, AlertTriangle, ChevronDown } from "lucide-react"
+import { Edit, Trash2, Search, Download, Upload, AlertTriangle, ChevronDown, Lock } from "lucide-react"
 import { MaterialsDatabase, type Material } from "@/lib/materials-database-supabase"
 import { validateMaterial } from "@/lib/utils/material-utils"
 import { notificationService } from "@/lib/services/notification-service"
 import { Skeleton } from "@/components/ui/skeleton" // Import Skeleton
+import { authService } from "@/lib/auth" // Import auth service for permission checks
 
 import { AddMaterialDialog } from "./materials-manager/add-material-dialog"
 import { EditMaterialDialog } from "./materials-manager/edit-material-dialog"
@@ -46,6 +47,8 @@ export default function MaterialsManager() {
     description: "",
   })
   const [totalMaterialsCount, setTotalMaterialsCount] = useState(0) // Total count of materials matching current filters
+
+  const isAdmin = authService.hasAccess("admin")
 
   // useCallback to memoize the fetch function for the list
   const fetchMaterials = useCallback(
@@ -354,6 +357,7 @@ export default function MaterialsManager() {
   return (
     <div className="space-y-6">
       {renderConnectionStatus()} {/* Keep error/loading status, remove success */}
+      
       <Tabs
         defaultValue="list"
         className="w-full"
@@ -363,10 +367,13 @@ export default function MaterialsManager() {
           }
         }}
       >
+      {isAdmin && (
         <TabsList>
           <TabsTrigger value="list">Materials List</TabsTrigger>
           <TabsTrigger value="stats">Statistics</TabsTrigger>
         </TabsList>
+      )}
+        
 
         <TabsContent value="list" className="space-y-4">
           {/* Top row for search, filter, and Add Material button */}
@@ -393,13 +400,15 @@ export default function MaterialsManager() {
                 ))}
               </SelectContent>
             </Select>
-            <AddMaterialDialog
-              isOpen={isAddDialogOpen}
-              onOpenChange={setIsAddDialogOpen}
-              newMaterial={newMaterial}
-              onMaterialChange={setNewMaterial}
-              onSave={handleAddMaterial}
-            />
+            {isAdmin && (
+              <AddMaterialDialog
+                isOpen={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+                newMaterial={newMaterial}
+                onMaterialChange={setNewMaterial}
+                onSave={handleAddMaterial}
+              />
+            )}
           </div>
 
           {/* Materials table */}
@@ -411,7 +420,7 @@ export default function MaterialsManager() {
                   <TableHead>Category</TableHead>
                   <TableHead>GWP Factor</TableHead>
                   <TableHead>Aliases</TableHead>
-                  <TableHead>Actions</TableHead>
+                  {isAdmin && <TableHead>Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -439,28 +448,30 @@ export default function MaterialsManager() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingMaterial({ ...material })
-                              setIsEditDialogOpen(true)
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteMaterial(material.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingMaterial({ ...material })
+                                setIsEditDialogOpen(true)
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteMaterial(material.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ),
                 )}
@@ -472,7 +483,7 @@ export default function MaterialsManager() {
                     onClick={handleLoadMore}
                     className="cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
                   >
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={isAdmin ? 5 : 4} className="text-center">
                       <Button variant="ghost" className="pointer-events-none">
                         Load more ({totalMaterialsCount - materials.length} remaining){" "}
                         <ChevronDown className="ml-2 h-4 w-4" />
@@ -489,31 +500,32 @@ export default function MaterialsManager() {
               <div className="text-center py-8 text-gray-500">No materials found with selected filters</div>
             )}
 
-          {/* Action buttons at the bottom */}
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2">
-              <Button variant="destructive" onClick={handleDeleteAllMaterials}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete All
-              </Button>
-              <Button variant="outline" onClick={handleResetToDefaults}>
-                Reset Defaults
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={exportDatabase}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Label htmlFor="import-file">
-                <Button variant="outline">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import
+          {isAdmin && (
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                <Button variant="destructive" onClick={handleDeleteAllMaterials}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete All
                 </Button>
-              </Label>
-              <Input id="import-file" type="file" accept=".json" onChange={importDatabase} className="hidden" />
+                <Button variant="outline" onClick={handleResetToDefaults}>
+                  Reset Defaults
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={exportDatabase}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <Label htmlFor="import-file">
+                  <Button variant="outline">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import
+                  </Button>
+                </Label>
+                <Input id="import-file" type="file" accept=".json" onChange={importDatabase} className="hidden" />
+              </div>
             </div>
-          </div>
+          )}
         </TabsContent>
 
         <TabsContent value="stats">
@@ -532,13 +544,15 @@ export default function MaterialsManager() {
           )}
         </TabsContent>
       </Tabs>
-      <EditMaterialDialog
-        isOpen={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        editingMaterial={editingMaterial}
-        onMaterialChange={(mat) => setEditingMaterial(mat)}
-        onSave={handleEditMaterial}
-      />
+      {isAdmin && (
+        <EditMaterialDialog
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          editingMaterial={editingMaterial}
+          onMaterialChange={(mat) => setEditingMaterial(mat)}
+          onSave={handleEditMaterial}
+        />
+      )}
     </div>
   )
 }

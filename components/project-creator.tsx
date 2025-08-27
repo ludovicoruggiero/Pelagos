@@ -32,6 +32,18 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
   })
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
+  const vesselTypeMapping = {
+    "Motor Yacht": "M/Y",
+    "Sailing Yacht": "S/Y",
+    Superyacht: "M/Y",
+    "Commercial Vessel": "M/V",
+    "Naval Vessel": "N/V",
+    "Fishing Vessel": "F/V",
+    "Cargo Ship": "M/V",
+    "Passenger Ship": "M/S",
+    Other: "V/",
+  }
+
   const vesselTypes = [
     "Motor Yacht",
     "Sailing Yacht",
@@ -89,11 +101,22 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
   }
 
   const handleInputChange = (field: keyof CreateProjectData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    if (field === "vessel_type" && value) {
+      const abbreviation = vesselTypeMapping[value as keyof typeof vesselTypeMapping]
+      setFormData((prev) => ({ ...prev, [field]: abbreviation }))
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }))
+    }
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }))
     }
+  }
+
+  const getDisplayName = (abbreviation: string) => {
+    const entry = Object.entries(vesselTypeMapping).find(([_, abbr]) => abbr === abbreviation)
+    return entry ? entry[0] : abbreviation
   }
 
   return (
@@ -143,7 +166,10 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
             {/* Vessel Type */}
             <div>
               <Label htmlFor="vessel_type">Vessel Type *</Label>
-              <Select value={formData.vessel_type} onValueChange={(value) => handleInputChange("vessel_type", value)}>
+              <Select
+                value={getDisplayName(formData.vessel_type)}
+                onValueChange={(value) => handleInputChange("vessel_type", value)}
+              >
                 <SelectTrigger className={errors.vessel_type ? "border-red-500" : ""} aria-label="Select vessel type">
                   <SelectValue placeholder="Select vessel type" />
                 </SelectTrigger>

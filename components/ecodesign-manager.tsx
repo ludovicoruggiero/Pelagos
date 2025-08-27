@@ -29,6 +29,7 @@ import StrategyManager from "@/components/ecodesign/strategy-manager"
 import LookupManager from "@/components/ecodesign/lookup-manager"
 import SourceManager from "@/components/ecodesign/source-manager"
 import EcodesignLandingCard from "@/components/ecodesign/ecodesign-landing-card" // Import the new component
+import MaterialsManager from "@/components/materials-manager" // Import MaterialsManager component
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,16 +72,17 @@ export default function EcodesignManager() {
   const [activeTab, setActiveTab] = useState<"guidelines" | "strategies" | "lookups" | "sources">("guidelines")
   const [showDeleteAllConfirmation, setShowDeleteAllConfirmation] = useState(false)
   const [showEcodesignLanding, setShowEcodesignLanding] = useState(true) // New state for landing card
+  const [showMaterialsDatabase, setShowMaterialsDatabase] = useState(false) // New state for showing materials database
   const { toast } = useToast()
 
   const isAdmin = authService.hasAccess("admin")
 
   useEffect(() => {
-    // Only load data if not showing the landing card, or if we just switched from it
-    if (!showEcodesignLanding) {
+    // Only load data if not showing the landing card or materials database, or if we just switched from them
+    if (!showEcodesignLanding && !showMaterialsDatabase) {
       loadData()
     }
-  }, [showEcodesignLanding]) // Depend on showEcodesignLanding
+  }, [showEcodesignLanding, showMaterialsDatabase]) // Depend on showEcodesignLanding and showMaterialsDatabase
 
   const loadData = async () => {
     try {
@@ -235,8 +237,36 @@ export default function EcodesignManager() {
     ? substrategies.filter((sub) => sub.strategy_id === tempFilters.strategy_id)
     : substrategies
 
+  if (showMaterialsDatabase) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setShowMaterialsDatabase(false)
+              setShowEcodesignLanding(true)
+            }}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Ecodesign Tools
+          </Button>
+        </div>
+        <MaterialsManager />
+      </div>
+    )
+  }
+
   if (showEcodesignLanding) {
-    return <EcodesignLandingCard onExploreGuidelines={() => setShowEcodesignLanding(false)} />
+    return (
+      <EcodesignLandingCard
+        onExploreGuidelines={() => setShowEcodesignLanding(false)}
+        onExploreMaterials={() => {
+          setShowEcodesignLanding(false)
+          setShowMaterialsDatabase(true)
+        }}
+      />
+    )
   }
 
   if (loading) {

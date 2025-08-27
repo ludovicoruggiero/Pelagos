@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ecodesignService } from "@/lib/services/ecodesign-service"
+import { authService } from "@/lib/auth"
 import { Plus, Edit, Trash2, Table2 } from "lucide-react"
 import LookupItemDialog from "./lookup-item-dialog"
 import { Button } from "@/components/ui/button"
@@ -88,6 +89,8 @@ export default function LookupManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<LookupItem | null>(null)
 
+  const isAdmin = authService.hasAccess("admin")
+
   const loadTableData = useCallback(async () => {
     if (!selectedTable) {
       setTableData([])
@@ -113,6 +116,7 @@ export default function LookupManager() {
   }, [loadTableData])
 
   const handleOpenDialog = (item: LookupItem | null = null) => {
+    if (!isAdmin) return
     setEditingItem(item)
     setIsDialogOpen(true)
   }
@@ -123,7 +127,7 @@ export default function LookupManager() {
   }
 
   const handleSave = async (code: string, label: string) => {
-    if (!selectedTable) return
+    if (!selectedTable || !isAdmin) return
     try {
       if (editingItem) {
         await lookupTablesConfig[selectedTable].updater(editingItem.id, code, label)
@@ -138,7 +142,7 @@ export default function LookupManager() {
   }
 
   const handleDeleteItem = async (id: string) => {
-    if (!selectedTable) return
+    if (!selectedTable || !isAdmin) return
     if (!confirm(`Are you sure you want to delete this item from ${lookupTablesConfig[selectedTable].label}?`)) {
       return
     }
@@ -170,17 +174,28 @@ export default function LookupManager() {
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              onClick={() => handleOpenDialog()}
-              className="bg-blue-600 hover:bg-blue-700"
-              disabled={!selectedTable}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add New
-            </Button>
+            {isAdmin && (
+              <Button
+                onClick={() => handleOpenDialog()}
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={!selectedTable}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New
+              </Button>
+            )}
           </div>
 
           {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+
+          {!isAdmin && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-amber-800 text-sm">
+                <strong>View Only:</strong> You have read-only access to this section. Contact an administrator to
+                modify materials.
+              </p>
+            </div>
+          )}
 
           {/* Table Data Display */}
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -197,7 +212,7 @@ export default function LookupManager() {
             ) : tableData.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-slate-500 text-center">
                 <p>No entries found for {currentTableLabel}.</p>
-                <p className="text-sm mt-2">Click "Add New" to create the first entry.</p>
+                {isAdmin && <p className="text-sm mt-2">Click "Add New" to create the first entry.</p>}
               </div>
             ) : (
               <ScrollArea className="flex-1 rounded-md border">
@@ -206,7 +221,7 @@ export default function LookupManager() {
                     <TableRow>
                       <TableHead className="w-[150px]">Code</TableHead>
                       <TableHead>Label</TableHead>
-                      <TableHead className="w-[100px] text-right">Actions</TableHead>
+                      {isAdmin && <TableHead className="w-[100px] text-right">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -214,18 +229,20 @@ export default function LookupManager() {
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.code}</TableCell>
                         <TableCell>{item.label}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(item)}>
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Edit</span>
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}>
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                              <span className="sr-only">Delete</span>
-                            </Button>
-                          </div>
-                        </TableCell>
+                        {isAdmin && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(item)}>
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Edit</span>
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}>
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <span className="sr-only">Delete</span>
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -236,13 +253,15 @@ export default function LookupManager() {
         </CardContent>
       </Card>
 
-      <LookupItemDialog
-        isOpen={isDialogOpen}
-        onClose={handleCloseDialog}
-        item={editingItem}
-        onSave={handleSave}
-        tableName={currentTableLabel}
-      />
+      {isAdmin && (
+        <LookupItemDialog
+          isOpen={isDialogOpen}
+          onClose={handleCloseDialog}
+          item={editingItem}
+          onSave={handleSave}
+          tableName={currentTableLabel}
+        />
+      )}
     </div>
   )
 }
