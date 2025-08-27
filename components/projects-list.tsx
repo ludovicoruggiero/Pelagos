@@ -341,9 +341,7 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                {project.description && (
-                  <CardDescription className="text-sm line-clamp-2">{project.description}</CardDescription>
-                )}
+                
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-3">

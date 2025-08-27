@@ -284,6 +284,10 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
             
           </div>
         )}
+
+        {currentProject.description && (
+                  <CardDescription className="text-sm line-clamp-2">{currentProject.description}</CardDescription>
+                )}
       </div> 
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -26,22 +26,25 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
     description: "",
     vessel_type: "",
     vessel_length: undefined,
-    displacement: undefined,
+    vessel_lwl: undefined,
+    vessel_gt: undefined,
+    vessel_imo_id: "",
+    vessel_yop: undefined,
     shipyard: "",
-    owner_name: "",
   })
+
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   const vesselTypeMapping = {
     "Motor Yacht": "M/Y",
     "Sailing Yacht": "S/Y",
-    Superyacht: "M/Y",
+    "Superyacht": "M/Y",
     "Commercial Vessel": "M/V",
     "Naval Vessel": "N/V",
     "Fishing Vessel": "F/V",
     "Cargo Ship": "M/V",
     "Passenger Ship": "M/S",
-    Other: "V/",
+    "Other": "V/",
   }
 
   const vesselTypes = [
@@ -68,11 +71,19 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
     }
 
     if (formData.vessel_length && formData.vessel_length <= 0) {
-      newErrors.vessel_length = "Vessel length must be positive"
+      newErrors.vessel_length = "Vessel length overall must be positive"
     }
 
-    if (formData.displacement && formData.displacement <= 0) {
-      newErrors.displacement = "Displacement must be positive"
+    if (formData.vessel_lwl && formData.vessel_lwl <= 0) {
+      newErrors.vessel_lwl = "Vessel length at the waterline must be positive"
+    }
+
+    if (formData.vessel_gt && formData.vessel_gt <= 0) {
+      newErrors.vessel_gt = "Gross Tonnage must be positive"
+    }
+
+    if (formData.vessel_yop && (formData.vessel_yop < 1000 || formData.vessel_yop > 2100)) {
+      newErrors.vessel_yop = "Year of Production must be a valid year (e.g. 1990)"
     }
 
     setErrors(newErrors)
@@ -145,7 +156,7 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="e.g., M/Y Aurora - GWP Assessment"
+                placeholder="e.g., Pelagos 120"
                 className={errors.name ? "border-red-500" : ""}
               />
               {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
@@ -163,8 +174,11 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
               />
             </div>
 
-            {/* Vessel Type */}
-            <div>
+            {/* Vessel Specifications */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Vessel Type */}
+              <div>
               <Label htmlFor="vessel_type">Vessel Type *</Label>
               <Select
                 value={getDisplayName(formData.vessel_type)}
@@ -182,12 +196,20 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
                 </SelectContent>
               </Select>
               {errors.vessel_type && <p className="text-sm text-red-600 mt-1">{errors.vessel_type}</p>}
-            </div>
+              </div>
 
-            {/* Vessel Specifications */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="vessel_length">Length Overall (m)</Label>
+                <Label htmlFor="vessel_imo_id">IMO id number</Label>
+                <Input
+                  id="vessel_imo_id"
+                  value={formData.vessel_imo_id}
+                  onChange={(e) => handleInputChange("vessel_imo_id", e.target.value)}
+                  placeholder="e.g., 7654321"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="vessel_length">Length Overall (ft)</Label>
                 <Input
                   id="vessel_length"
                   type="number"
@@ -196,54 +218,58 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
                   onChange={(e) =>
                     handleInputChange("vessel_length", e.target.value ? Number.parseFloat(e.target.value) : undefined)
                   }
-                  placeholder="e.g., 45.5"
+                  placeholder="e.g., 120"
                   className={errors.vessel_length ? "border-red-500" : ""}
                 />
                 {errors.vessel_length && <p className="text-sm text-red-600 mt-1">{errors.vessel_length}</p>}
               </div>
 
               <div>
-                <Label htmlFor="displacement">Displacement (tonnes)</Label>
+                <Label htmlFor="vessel_lwl">Length at the waterline (ft)</Label>
                 <Input
-                  id="displacement"
+                  id="vessel_lwl"
                   type="number"
                   step="0.1"
-                  value={formData.displacement || ""}
+                  value={formData.vessel_lwl || ""}
                   onChange={(e) =>
-                    handleInputChange("displacement", e.target.value ? Number.parseFloat(e.target.value) : undefined)
+                    handleInputChange("vessel_lwl", e.target.value ? Number.parseFloat(e.target.value) : undefined)
                   }
-                  placeholder="e.g., 180.5"
-                  className={errors.displacement ? "border-red-500" : ""}
+                  placeholder="e.g., 110"
+                  className={errors.vessel_lwl ? "border-red-500" : ""}
                 />
-                {errors.displacement && <p className="text-sm text-red-600 mt-1">{errors.displacement}</p>}
-              </div>
-            </div>
-
-            {/* Additional Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="shipyard">Shipyard</Label>
-                <Input
-                  id="shipyard"
-                  value={formData.shipyard}
-                  onChange={(e) => handleInputChange("shipyard", e.target.value)}
-                  placeholder="e.g., Ferretti Group"
-                />
+                {errors.vessel_lwl && <p className="text-sm text-red-600 mt-1">{errors.vessel_lwl}</p>}
               </div>
 
               <div>
-                <Label htmlFor="owner_name">Owner/Client</Label>
+                <Label htmlFor="vessel_gt">Gross Tonnage</Label>
                 <Input
-                  id="owner_name"
-                  value={formData.owner_name}
-                  onChange={(e) => handleInputChange("owner_name", e.target.value)}
-                  placeholder="e.g., Private Owner"
+                  id="vessel_gt"
+                  type="number"
+                  step="0.1"
+                  value={formData.vessel_gt || ""}
+                  onChange={(e) =>
+                    handleInputChange("vessel_gt", e.target.value ? Number.parseFloat(e.target.value) : undefined)
+                  }
+                  placeholder="e.g., 320"
+                  className={errors.vessel_gt ? "border-red-500" : ""}
+                />
+                {errors.vessel_gt && <p className="text-sm text-red-600 mt-1">{errors.vessel_gt}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="vessel_yop">Year of Production</Label>
+                <Input
+                  id="vessel_yop"
+                  value={formData.vessel_yop}
+                  onChange={(e) => handleInputChange("vessel_yop", e.target.value)}
+                  placeholder="e.g., 2025"
                 />
               </div>
+
             </div>
 
             {/* Info Alert and Submit Button */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-2.5 pt-0">
               <Alert className="flex-grow sm:max-w-[70%] border-none bg-white">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>

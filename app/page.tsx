@@ -344,7 +344,7 @@ export default function LightshipweightGWPTool() {
         </header>
 
         {/* Page Content */}
-        <main className="p-6">
+        <main className="p-6 shadow-none">
           {activeView === "dashboard" && (
             <div className="space-y-6">
               {/* Welcome Section */}
