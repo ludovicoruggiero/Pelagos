@@ -18,11 +18,11 @@ import {
   HelpCircle,
   Package,
   Save,
-  ShapesIcon,HashIcon,RulerIcon,RulerIcon,BoxIcon,CalendarIcon,
-  Ruler,
-  Weight,
-  Building2,
-  User,
+  ShapesIcon,
+  HashIcon,
+  RulerIcon,
+  BoxIcon,
+  CalendarIcon,
 } from "lucide-react"
 import type { GWPCalculation } from "@/lib/gwp-calculator"
 import { projectsService } from "@/lib/services/projects-service"
