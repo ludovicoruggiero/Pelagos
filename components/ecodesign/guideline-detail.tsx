@@ -23,8 +23,8 @@ import {
 import type { Guideline } from "@/lib/services/ecodesign-service"
 import { ecodesignService } from "@/lib/services/ecodesign-service"
 import { Separator } from "@/components/ui/separator"
-import { Dialog, DialogContent } from "@/components/ui/dialog" // Import Dialog components
-import Image from "next/image" // Import Image component
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import Image from "next/image"
 
 interface GuidelineDetailProps {
   guideline: Guideline
@@ -35,14 +35,11 @@ interface GuidelineDetailProps {
 
 export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }: GuidelineDetailProps) {
   const [deleting, setDeleting] = useState(false)
-  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false) // State for image preview dialog
-  const [previewImageUrl, setPreviewImageUrl] = useState("") // State for image URL in preview dialog
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false)
+  const [previewImageUrl, setPreviewImageUrl] = useState("")
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this guideline? This action cannot be undone.")) {
-      return
-    }
-
+    if (!confirm("Are you sure you want to delete this guideline? This action cannot be undone.")) return
     try {
       setDeleting(true)
       await ecodesignService.deleteGuideline(guideline.id)
@@ -111,14 +108,16 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
           <Card>
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-2xl font-bold text-slate-900 mb-2">{guideline.title}</CardTitle>
+                <div className="min-w-0">
+                  <CardTitle className="text-2xl font-bold text-slate-900 mb-2 break-words">
+                    {guideline.title}
+                  </CardTitle>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               {guideline.description && (
-                <div className="prose max-w-none">
+                <div className="max-w-none">
                   <p className="text-slate-700 leading-relaxed">{guideline.description}</p>
                 </div>
               )}
@@ -159,54 +158,67 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
               <CardContent>
                 <div className="space-y-4">
                   {guideline.sources.map((source) => (
-                    <div
+                    <article
                       key={source.id}
-                      className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-start gap-4"
+                      className="p-4 bg-slate-50 rounded-lg border border-slate-200"
                     >
-                      {source.image_url && (
-                        <button
-                          onClick={() => handleImageClick(source.image_url!)}
-                          className="flex-shrink-0 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-                          aria-label={`View image for ${source.name}`}
-                        >
-                          <Image
-                            src={source.image_url || "/placeholder.svg"}
-                            alt={`Image for ${source.name}`}
-                            width={80}
-                            height={80}
-                            className="object-cover aspect-square"
-                          />
-                        </button>
-                      )}
-                      <div className="flex-grow space-y-1">
-                        {source.link ? (
-                          <a
-                            href={source.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center font-semibold text-slate-900 hover:underline"
+                      {/* Mobile: immagine full-width in alto; Desktop: thumb a sinistra */}
+                      <div className="md:flex md:items-start md:gap-4">
+                        {source.image_url && (
+                          <button
+                            onClick={() => handleImageClick(source.image_url!)}
+                            className="relative w-full aspect-square overflow-hidden rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 md:w-[96px] md:h-[96px] md:flex-shrink-0 md:aspect-auto md:rounded-lg"
+                            aria-label={`View image for ${source.name}`}
                           >
-                            {source.name}
-                            <ExternalLink className="ml-1 h-3 w-3" />
-                          </a>
-                        ) : (
-                          <div className="font-semibold text-slate-900">{source.name}</div>
+                            <Image
+                              src={source.image_url}
+                              alt={`Image for ${source.name}`}
+                              fill
+                              sizes="(max-width: 600px) 100vw, 96px"
+                              className="object-cover"
+                              priority={false}
+                            />
+                          </button>
                         )}
-                        {source.description && <p className="text-sm text-slate-700">{source.description}</p>}
-                        {!source.link &&
-                          source.link && ( // This condition will never be true, but keeping it for clarity if a separate "View Source" link is desired later
+
+                        <div className="flex-1 min-w-0 mt-3 md:mt-0">
+                          {source.link ? (
                             <a
                               href={source.link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center text-sm text-blue-600 hover:underline"
+                              className="inline-flex items-center font-semibold text-slate-900 hover:underline truncate"
+                              title={source.name}
                             >
-                              View Source
-                              <ExternalLink className="ml-1 h-3 w-3" />
+                              <span className="truncate">{source.name}</span>
+                              <ExternalLink className="ml-1 h-3 w-3 flex-shrink-0" />
                             </a>
+                          ) : (
+                            <div className="font-semibold text-slate-900 break-words">{source.name}</div>
                           )}
+
+                          {source.description && (
+                            <p className="text-sm text-slate-700 mt-1 whitespace-pre-line">
+                              {source.description}
+                            </p>
+                          )}
+
+                          {source.link && (
+                            <div className="mt-2">
+                              <a
+                                href={source.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:underline inline-flex items-center"
+                              >
+                                View Source
+                                <ExternalLink className="ml-1 h-3 w-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </article>
                   ))}
                 </div>
               </CardContent>
@@ -224,13 +236,14 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
             <CardContent className="space-y-4">
               <div>
                 <div className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                  <Flag className="h-4 w-4" /> {/* Icon for Priority */}
+                  <Flag className="h-4 w-4" />
                   Priority
                 </div>
                 <Badge variant="outline" className={getPriorityColor(guideline.priority)}>
                   {guideline.priority}
                 </Badge>
               </div>
+
               {guideline.substrategy?.strategy && (
                 <div>
                   <div className="text-sm font-medium text-slate-600 flex items-center gap-2">
@@ -240,6 +253,7 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
                   <div className="text-sm text-slate-900">{guideline.substrategy.strategy.name}</div>
                 </div>
               )}
+
               {guideline.substrategy && (
                 <div>
                   <div className="text-sm font-medium text-slate-600 flex items-center gap-2">
@@ -249,6 +263,7 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
                   <div className="text-sm text-slate-900">{guideline.substrategy.name}</div>
                 </div>
               )}
+
               {guideline.target_groups && guideline.target_groups.length > 0 && (
                 <>
                   {(guideline.substrategy?.strategy || guideline.priority) && <Separator className="my-4" />}
@@ -267,6 +282,7 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
                   </div>
                 </>
               )}
+
               {guideline.life_cycle_phases && guideline.life_cycle_phases.length > 0 && (
                 <>
                   {((guideline.target_groups && guideline.target_groups.length > 0) ||
@@ -391,11 +407,11 @@ export default function GuidelineDetail({ guideline, onBack, onEdit, onDelete }:
           {previewImageUrl && (
             <div className="relative w-full aspect-square mx-auto">
               <Image
-                src={previewImageUrl || "/placeholder.svg"}
+                src={previewImageUrl}
                 alt="Source preview"
-                layout="fill"
-                objectFit="contain"
-                className="rounded-lg"
+                fill
+                className="object-contain rounded-lg"
+                sizes="(max-width: 768px) 100vw, 600px"
               />
             </div>
           )}

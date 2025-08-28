@@ -28,7 +28,7 @@ export default function EcodesignLandingCard({ onExploreGuidelines, onExploreMat
               </div>
               <CardTitle className="text-xl mb-3 text-slate-800">Improve Project</CardTitle>
               <CardDescription className="mb-6 text-slate-600 leading-relaxed">
-                Analyze and improve an existing project's environmental performance with detailed recommendations.
+                Improve a project's environmental performance with detailed recommendations
               </CardDescription>
             </div>
             <Button disabled className="w-full">
