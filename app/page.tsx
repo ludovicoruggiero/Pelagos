@@ -206,12 +206,12 @@ export default function LightshipweightGWPTool() {
                     {activeView === "ecodesign" && "Ecodesign Guidelines"}
                   </h2>
                   <p className="text-sm text-slate-500 break-words line-clamp-2">
-                    {activeView === "dashboard" && "Overview of your environmental analysis"}
+                    {activeView === "dashboard" && "Overview of your impact analysis"}
                     {activeView === "calculator" && getCurrentStepInfo().description}
                     {activeView === "materials" && "Manage your materials library"}
                     {activeView === "projects" && "Manage your projects"}
-                    {activeView === "create-project" && "Set up a new environmental assessment project"}
-                    {activeView === "ecodesign" && "Life Cycle Design guidelines and strategies"}
+                    {activeView === "create-project" && "Set up a new project"}
+                    {activeView === "ecodesign" && "Strategies to reduce impacts"}
                   </p>
                 </div>
               </div>
