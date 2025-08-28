@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, AlertCircle } from "lucide-react" // Removed Ship icon
+import { FilePlus2Icon,Plus, AlertCircle } from "lucide-react" // Removed Ship icon
 import { projectsService, type CreateProjectData } from "@/lib/services/projects-service"
 import { notificationService } from "@/lib/services/notification-service"
 
@@ -138,7 +138,7 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
+            <FilePlus2Icon className="h-5 w-5" />
             Project Details
           </CardTitle>
           <CardDescription>Provide basic information about your vessel and project</CardDescription>
@@ -260,10 +260,18 @@ export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectC
                 <Label htmlFor="vessel_yop">Year of Production</Label>
                 <Input
                   id="vessel_yop"
-                  value={formData.vessel_yop}
-                  onChange={(e) => handleInputChange("vessel_yop", e.target.value)}
+                  type="number"
+                  step="1"
+                  value={formData.vessel_yop ?? ""}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "vessel_yop",
+                      e.target.value === "" ? undefined : Number.parseInt(e.target.value, 10)
+                    )
+                  }
                   placeholder="e.g., 2025"
                 />
+                {errors.vessel_yop && <p className="text-sm text-red-600 mt-1">{errors.vessel_yop}</p>}
               </div>
 
             </div>

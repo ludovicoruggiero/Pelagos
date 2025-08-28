@@ -17,7 +17,6 @@ import {
   Play,
   CheckCircle,
   Clock,
-  Archive,
   Filter,
 } from "lucide-react"
 import {
@@ -52,10 +51,12 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
   useEffect(() => {
     loadProjects()
     loadStats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userEmail])
 
   useEffect(() => {
     filterProjects()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects, searchTerm, statusFilter])
 
   const loadProjects = async () => {
@@ -75,6 +76,8 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
       const projectStats = await projectsService.getProjectStats(userEmail)
       setStats(projectStats)
     } catch (error: any) {
+      // opzionale: toast
+      // notificationService.error(error.message || "Failed to load stats")
       console.error("Failed to load stats:", error)
     }
   }
@@ -82,49 +85,32 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
   const filterProjects = () => {
     let filtered = projects
 
-    // Filter by search term
     if (searchTerm) {
+      const q = searchTerm.toLowerCase()
       filtered = filtered.filter(
-        (project) =>
-          project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          project.vessel_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          project.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.vessel_type?.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q),
       )
     }
 
-    // Filter by status
     if (statusFilter !== "all") {
-      filtered = filtered.filter((project) => project.status === statusFilter)
+      filtered = filtered.filter((p) => p.status === statusFilter)
     }
 
     setFilteredProjects(filtered)
   }
 
   const handleDeleteProject = async (projectId: string) => {
-    if (!confirm("Are you sure you want to delete this project? This action cannot be undone.")) {
-      return
-    }
-
+    if (!confirm("Are you sure you want to delete this project? This action cannot be undone.")) return
     try {
       await projectsService.deleteProject(projectId)
       notificationService.success("Project deleted successfully")
-      loadProjects()
-      loadStats()
+      await loadProjects()
+      await loadStats()
     } catch (error: any) {
       notificationService.error(error.message || "Failed to delete project")
-    }
-  }
-
-  const getStatusIcon = (status: Project["status"]) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      case "processing":
-        return <Clock className="h-4 w-4 text-blue-600" />
-      case "archived":
-        return <Archive className="h-4 w-4 text-slate-600" />
-      default:
-        return <Edit className="h-4 w-4 text-slate-600" />
     }
   }
 
@@ -141,18 +127,12 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {/* Skeleton for Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -163,7 +143,7 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
             </Card>
           ))}
         </div>
-        {/* Skeleton for Filters and New Project Button */}
+
         <Card className="p-4 animate-pulse">
           <CardContent className="p-0 flex flex-col sm:flex-row gap-4 items-center">
             <div className="h-10 bg-slate-200 rounded flex-1 w-full sm:w-auto"></div>
@@ -171,7 +151,7 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
             <div className="h-10 bg-slate-200 rounded w-full sm:w-auto"></div>
           </CardContent>
         </Card>
-        {/* Skeleton for Projects Grid */}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -189,7 +169,7 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -240,11 +220,11 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
         </Card>
       </div>
 
-      {/* Filters and New Project Button */}
+      {/* Filters */}
       <Card className="p-4">
         <CardContent className="p-0 flex flex-col sm:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full sm:w-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Search projects..."
               value={searchTerm}
@@ -252,6 +232,7 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
               className="pl-10 w-full"
             />
           </div>
+
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-48">
               <Filter className="h-4 w-4 mr-2" />
@@ -265,6 +246,7 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
+
           <Button onClick={onCreateNew} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             New Project
@@ -272,7 +254,7 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
         </CardContent>
       </Card>
 
-      {/* Projects Grid */}
+      {/* Grid */}
       {filteredProjects.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
@@ -294,10 +276,13 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {filteredProjects.map((project) => (
-            <Card key={project.id} className="hover:shadow-md transition-shadow cursor-pointer group">
-              <CardHeader className="pb-3">
+            <Card
+              key={project.id}
+              className="hover:shadow-md transition-shadow cursor-pointer group h-full flex flex-col"
+            >
+              <CardHeader className="pb-3 shrink-0">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg mb-1 group-hover:text-blue-600 transition-colors">
@@ -305,8 +290,7 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
                     </CardTitle>
                     <div className="flex items-center gap-2 mb-2">
                       <Badge className={`text-xs ${getStatusColor(project.status)}`}>
-                        {getStatusIcon(project.status)}
-                        <span className="ml-1 capitalize">{project.status}</span>
+                        <span className="capitalize">{project.status}</span>
                       </Badge>
                       {project.vessel_type && (
                         <Badge variant="outline" className="text-xs">
@@ -315,6 +299,7 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
                       )}
                     </div>
                   </div>
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -341,27 +326,26 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                
               </CardHeader>
-              <CardContent className="pt-0">
+
+              <CardContent className="pt-0 flex-1 flex flex-col">
+                {/* Contenuto variabile in alto */}
                 <div className="space-y-3">
-                  {/* Project Details */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {project.vessel_length && (
                       <div>
-                        <span className="text-slate-500">Length:</span>
-                        <span className="ml-1 font-medium">{project.vessel_length}m</span>
+                        <span className="text-slate-500">LOA:</span>
+                        <span className="ml-1 font-medium">{project.vessel_length} ft</span>
                       </div>
                     )}
-                    {project.displacement && (
+                    {project.vessel_gt && (
                       <div>
-                        <span className="text-slate-500">Displacement:</span>
-                        <span className="ml-1 font-medium">{project.displacement}t</span>
+                        <span className="text-slate-500">GT:</span>
+                        <span className="ml-1 font-medium">{project.vessel_gt}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Progress Info */}
                   {project.uploaded_files_count > 0 && (
                     <div className="text-sm text-slate-600">
                       <span>{project.uploaded_files_count} files uploaded</span>
@@ -371,26 +355,25 @@ export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }
                     </div>
                   )}
 
-                  {/* GWP Results */}
                   {project.total_gwp && (
-                    <div className="text-sm">
+                    <div className="text-sm mb-10">
                       <span className="text-slate-500">Total GWP:</span>
                       <span className="ml-1 font-medium text-green-600">
                         {(project.total_gwp / 1000).toFixed(1)}t CO₂eq
                       </span>
                     </div>
                   )}
+                </div>
 
-                  {/* Dates */}
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t">
+                {/* Footer ancorato in basso */}
+                <div className="mt-auto">
+                  <div className="flex items-center justify-between text-xs text-slate-500 mt-4 pt-2 border-t">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span>Created {formatDate(project.created_at)}</span>
                     </div>
-                    {project.completed_at && <span>Completed {formatDate(project.completed_at)}</span>}
                   </div>
 
-                  {/* Action Button */}
                   <Button
                     onClick={() => onProjectSelect(project)}
                     className="w-full mt-4"

@@ -41,6 +41,18 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
   const [activeTab, setActiveTab] = useState("overview")
   const [isSaving, setIsSaving] = useState(false)
   const { currentProject } = useAppState()
+  const getStatusColor = (status: Project["status"]) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-600 text-white"
+      case "processing":
+        return "bg-blue-600 text-white"
+      case "archived":
+        return "bg-slate-600 text-white"
+      default:
+        return "bg-yellow-600 text-white"
+    }
+  }
 
   // Add null check
   if (!gwpResults) {
@@ -192,13 +204,12 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground">{currentProject?.name || "Assessment Results"}</h1>
-            {currentProject?.status ? (
-              <Badge variant={currentProject.status === "completed" ? "default" : "secondary"}>
-                {currentProject.status.charAt(0).toUpperCase() + currentProject.status.slice(1)}
+              {currentProject?.status && (
+              <Badge className={`text-xs ${getStatusColor(currentProject.status)}`}>
+                <span className="capitalize">{currentProject.status}</span>
               </Badge>
-            ) : (
-              <p className="text-muted-foreground">Global Warming Potential Assessment</p>
-            )}
+              )}     
+                      
           </div>
 
           <div className="flex gap-2">
@@ -284,10 +295,17 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
             
           </div>
         )}
-
-        {currentProject.description && (
-                  <CardDescription className="text-sm line-clamp-2">{currentProject.description}</CardDescription>
-                )}
+        <div className="flex items-center gap-2">
+          <div>
+          {currentProject.description && (
+            <div className="flex flex-col">
+              <p className="text-xs text-muted-foreground mt-3.5">Description:</p>
+              <p className="text-sm line-clamp-2">{currentProject.description}</p>
+            </div>
+              )}
+          </div>
+        </div>
+        
       </div> 
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -370,12 +388,12 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Best Practice</span>
-                  <span className="text-sm text-secondary font-medium">
+                  <span className="text-sm font-medium text-blue-600">
                     {formatNumber(gwpResults.benchmarks.best_practice / 1000)} t CO₂eq
                   </span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-secondary h-2 rounded-full" style={{ width: "30%" }} />
+                  <div className="h-2 rounded-full bg-blue-600" style={{ width: "30%" }} />
                 </div>
 
                 <div className="flex items-center justify-between">

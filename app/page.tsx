@@ -242,7 +242,7 @@ export default function LightshipweightGWPTool() {
   const isAdmin = user && user.role === "admin"
 
   return (
-    <div className="rounded-lg border bg-card text-card-foreground shadow-sm border-none">
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm border-none pt-0">
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
